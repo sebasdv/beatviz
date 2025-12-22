@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embryo v4 | Design System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Colors */
+            --color-bg: #ffffff;
+            --color-fg: #000000;
+            --color-accent-1: #ff00c1;
+            /* Magenta */
+            --color-accent-2: #00fff9;
+            /* Cyan */
+            --color-border: #000000;
+
+            /* Typography */
+            --font-main: monospace;
+            --font-accent: 'Press Start 2P', cursive;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-s: 8px;
+            --space-m: 16px;
+            --space-l: 32px;
+        }
+
+        body {
+            background: var(--color-bg);
+            color: var(--color-fg);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: var(--space-l);
+            line-height: 1.6;
+        }
+
+        header {
+            border-bottom: 2px solid var(--color-fg);
+            margin-bottom: var(--space-l);
+            padding-bottom: var(--space-m);
+        }
+
+        h1 {
+            font-family: var(--font-accent);
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        h2 {
+            border-left: 4px solid var(--color-fg);
+            padding-left: var(--space-s);
+            margin-top: var(--space-l);
+            text-transform: uppercase;
+        }
+
+        .section {
+            margin-bottom: var(--space-l);
+        }
+
+        /* Token Grid */
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: var(--space-m);
+        }
+
+        .token-item {
+            border: 1px solid var(--color-border);
+            padding: var(--space-s);
+            text-align: center;
+        }
+
+        .color-preview {
+            height: 60px;
+            margin-bottom: var(--space-s);
+            border: 1px solid #eee;
+        }
+
+        /* Component Showcase */
+        .showcase {
+            display: flex;
+            gap: var(--space-m);
+            flex-wrap: wrap;
+            padding: var(--space-m);
+            background: #fafafa;
+            border: 1px dashed #ccc;
+        }
+
+        /* Drum Pad Component */
+        .drum-pad {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 1px solid black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.05s;
+            user-select: none;
+        }
+
+        .drum-pad:active {
+            background: black;
+            color: white;
+            transform: scale(0.95);
+        }
+
+        .drum-pad.loaded {
+            border-width: 3px;
+            position: relative;
+        }
+
+        .drum-pad.loaded::after {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background: black;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+        }
+
+        /* Glitch Animation */
+        .glitch-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: var(--space-l);
+        }
+
+        .glitch-logo {
+            width: 200px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .glitch-wrapper::before,
+        .glitch-wrapper::after {
+            content: 'EMBRYO';
+            /* Minimal text fallback for demo */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            opacity: 0.8;
+            z-index: 1;
+            font-weight: bold;
+            font-size: 2rem;
+        }
+
+        .glitch-wrapper::before {
+            left: 2px;
+            text-shadow: -2px 0 var(--color-accent-1);
+            clip-path: inset(44% 0 56% 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+
+        .glitch-wrapper::after {
+            left: -2px;
+            text-shadow: -2px 0 var(--color-accent-2);
+            animation: glitch-anim2 1s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% {
+                clip-path: inset(80% 0 0 0);
+                transform: translate(-5px, -2px);
+            }
+
+            50% {
+                clip-path: inset(15% 0 80% 0);
+                transform: translate(5px, -2px);
+            }
+
+            100% {
+                clip-path: inset(62% 0 35% 0);
+                transform: translate(-2px, -2px);
+            }
+        }
+
+        @keyframes glitch-anim2 {
+            0% {
+                clip-path: inset(10% 0 85% 0);
+                transform: translate(5px, 2px);
+            }
+
+            100% {
+                clip-path: inset(15% 0 80% 0);
+                transform: translate(5px, -2px);
+            }
+        }
+
+        /* FX Sliders */
+        .fx-panel {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-bottom: 2px solid black;
+            background: white;
+            gap: 10px;
+        }
+
+        .fx-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .fx-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .fx-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 20px;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .fx-slider:focus {
+            outline: none;
+        }
+
+        .fx-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #ccc;
+            border: 1px solid black;
+        }
+
+        .fx-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 16px;
+            width: 8px;
+            background: black;
+            margin-top: -7px;
+        }
+
+        pre {
+            background: #333;
+            color: #fff;
+            padding: var(--space-m);
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>EMBRYO V4 | DESIGN SYSTEM</h1>
+        <p>Visual tokens and interactive components guide.</p>
+    </header>
+
+    <div class="section">
+        <h2>1. Design Tokens</h2>
+        <div class="token-grid">
+            <div class="token-item">
+                <div class="color-preview" style="background: #ffffff;"></div>
+                <code>#FFFFFF</code>
+                <p>Background</p>
+            </div>
+            <div class="token-item">
+                <div class="color-preview" style="background: #000000;"></div>
+                <code>#000000</code>
+                <p>Foreground</p>
+            </div>
+            <div class="token-item">
+                <div class="color-preview" style="background: #ff00c1;"></div>
+                <code>#ff00c1</code>
+                <p>Glitch (M)</p>
+            </div>
+            <div class="token-item">
+                <div class="color-preview" style="background: #00fff9;"></div>
+                <code>#00fff9</code>
+                <p>Glitch (C)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>2. Components</h2>
+        <h3>Drum Pad</h3>
+        <div class="showcase">
+            <div class="drum-pad">01</div>
+            <div class="drum-pad loaded">02</div>
+        </div>
+        <pre><code>&lt;div class="drum-pad"&gt;01&lt;/div&gt;
+&lt;div class="drum-pad loaded"&gt;02&lt;/div&gt;</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. Animations</h2>
+        <h3>Glitch Effect</h3>
+        <div class="showcase" style="background: #eee; height: 150px; justify-content: center; align-items: center;">
+            <div class="glitch-wrapper">
+                <span style="font-size: 2rem; font-weight: bold;">EMBRYO</span>
+            </div>
+        </div>
+        <p>Uses layered pseudo-elements with <code>clip-path</code> and <code>text-shadow</code>.</p>
+    </div>
+
+    <div class="section">
+        <h2>4. FX Sliders</h2>
+        <div class="showcase">
+            <div class="fx-group" style="max-width: 100px;">
+                <label class="fx-label">FLT</label>
+                <input type="range" class="fx-slider" min="0" max="100" value="70">
+            </div>
+            <div class="fx-group" style="max-width: 100px;">
+                <label class="fx-label">DRV</label>
+                <input type="range" class="fx-slider" min="0" max="100" value="30">
+            </div>
+        </div>
+        <pre><code>&lt;div class="fx-group"&gt;
+    &lt;label class="fx-label"&gt;FLT&lt;/label&gt;
+    &lt;input type="range" class="fx-slider" min="0" max="100" value="70"&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>5. Header / UI</h2>
+        <div class="showcase" style="width: 100%; padding: 0;">
+            <div
+                style="border: 2px solid black; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px;">
+                <button
+                    style="background: white; border: 1px solid black; height: 44px; padding: 0 15px; font-weight: bold;">LOAD</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button
+                        style="width: 44px; height: 44px; border: 1px solid black; background: white; font-weight: bold;">-</button>
+                    <span font-weight: bold;>120</span>
+                    <button
+                        style="width: 44px; height: 44px; border: 1px solid black; background: white; font-weight: bold;">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <hr>
+        <p style="font-size: 0.8rem; opacity: 0.6;">Automated Export - Embryo System Interpreter v1.0</p>
+    </footer>
+
+</body>
+
+</html>

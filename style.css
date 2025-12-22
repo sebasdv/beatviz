@@ -1,0 +1,106 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #e0e0e0;
+    /* Light grey base */
+    color: #000000;
+    /* Black text */
+    font-family: 'Courier New', Courier, monospace;
+    /* Monospace font */
+    text-transform: uppercase;
+    /* All caps */
+}
+
+/* Vignette Effect */
+body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 2;
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+#overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #000;
+    pointer-events: auto;
+    z-index: 10;
+
+    /* Brutalist Panel */
+    background: #f0f0f0;
+    padding: 3rem;
+    border: 1px solid #000;
+    border-radius: 0;
+    /* No radius */
+    box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.2);
+    /* Hard shadow */
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin-bottom: 2rem;
+    color: #000;
+}
+
+p {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 2.5rem;
+    letter-spacing: 1px;
+}
+
+button {
+    background: transparent;
+    color: #000;
+    border: 1px solid #000;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0;
+    /* No radius */
+    transition: all 0.1s ease;
+}
+
+button:hover {
+    background: #000;
+    color: #fff;
+}
+
+button:active {
+    transform: translate(2px, 2px);
+}
+
+/* GUI Tweaks (optional, if you want to brutalize lil-gui) */
+.lil-gui {
+    --background-color: #f0f0f0;
+    --text-color: #000;
+    --title-background-color: #ccc;
+    --widget-color: #e0e0e0;
+    --hover-color: #fff;
+    --focus-color: #fff;
+    --number-color: #000;
+    --string-color: #000;
+    font-family: 'Courier New', monospace !important;
+}
