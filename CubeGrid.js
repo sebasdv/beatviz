@@ -14,11 +14,14 @@ export class CubeGrid {
         this.pads = []; // Stores current height/velocity data per pad
         for (let i = 0; i < 16; i++) {
             this.pads.push({
-                height: 0.2, // Min height (flat state)
+                height: 0.2,
                 velocity: 0,
-                isActive: 0 // For color mixing
+                restHeight: 0.2, // Target height for spring
+                isActive: 0
             });
         }
+
+        this.impulseDirection = 1.0;
 
         // TSL Uniforms/Nodes
         this.uBaseColor = new THREE.UniformNode(new THREE.Color(0x000000)); // CC 25: Base grayscale
@@ -75,8 +78,11 @@ export class CubeGrid {
     trigger(index, velocity) {
         if (index >= 0 && index < 16) {
             // Velocity controls pop height force
-            this.pads[index].velocity = velocity * 15.0;
+            this.pads[index].restHeight = 0.2 * this.impulseDirection; // Set new rest state
+            this.pads[index].velocity = velocity * 15.0 * this.impulseDirection;
             this.pads[index].isActive = 1.0;
+
+            this.impulseDirection *= -1.0;
 
             // Set Color to Active immediately
             this.mesh.setColorAt(index, this.uActiveColor.value);
@@ -92,20 +98,28 @@ export class CubeGrid {
         for (let i = 0; i < 16; i++) {
             const pad = this.pads[i];
 
-            // --- Physics / Animation (Spring/Gravity Logic) ---
-            if (pad.height > 0.2 || pad.velocity > 0.01 || pad.velocity < -0.01) {
-                pad.height += pad.velocity * delta;
+            // --- Physics / Animation (Spring Logic) ---
+            const springK = 30.0;
+            const damping = 0.92;
 
-                // Gravity
-                pad.velocity -= delta * 30.0;
+            // Apply Velocity
+            pad.height += pad.velocity * delta;
 
-                // Floor Collision (Bounce)
-                if (pad.height < 0.2) {
-                    pad.height = 0.2;
-                    pad.velocity *= -0.5; // Damping bounce
-                    if (Math.abs(pad.velocity) < 0.5) pad.velocity = 0;
-                }
+            // Spring Force towards restHeight
+            const diff = pad.height - pad.restHeight;
+            pad.velocity -= diff * springK * delta;
 
+            // Damping
+            pad.velocity *= damping;
+
+            // Snap to rest logic to stop micro-oscillations
+            if (Math.abs(diff) < 0.01 && Math.abs(pad.velocity) < 0.01) {
+                pad.height = pad.restHeight;
+                pad.velocity = 0;
+            }
+
+            // Always update matrix if there is movement or active state
+            if (pad.velocity !== 0 || pad.isActive > 0 || Math.abs(pad.height - pad.restHeight) > 0.001) {
                 // Update Matrix
                 const ix = i % 4;
                 const iz = Math.floor(i / 4);
@@ -113,7 +127,6 @@ export class CubeGrid {
                 const cz = iz * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
 
                 dummy.position.set(cx, 0, cz);
-                // Scale Y is height
                 dummy.scale.set(this.cellSize, pad.height, this.cellSize);
                 dummy.updateMatrix();
 
@@ -134,10 +147,6 @@ export class CubeGrid {
                     // Ensure explicit return to base
                     this.mesh.setColorAt(i, this.uBaseColor.value);
                 }
-            } else {
-                // Ensure base color is maintained (in case base color CC changes)
-                // Optimized: only setting if needed could be better, but safety first
-                // this.mesh.setColorAt(i, this.uBaseColor.value); 
             }
         }
 
@@ -153,12 +162,10 @@ export class CubeGrid {
         // value is 0..1
         if (cc === 24) {
             // CC 24: Active Color (Hue)
-            // Defaulting to 1.0 Saturation, 0.5 Lightness
             this.uActiveColor.value.setHSL(value, 1.0, 0.5);
         }
         if (cc === 25) {
             // CC 25: Base Color (Grayscale brightness)
-            // 0 = Black, 1 = White
             this.uBaseColor.value.setHSL(0, 0, value);
 
             // Immediate update for inactive pads
