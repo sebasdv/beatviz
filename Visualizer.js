@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { WebGPURenderer } from 'three/webgpu';
-// import { bloom } from 'three/addons/tsl/display/BloomNode.js'; // Optional bloom
-// import { pass } from 'three/addons/display/PassNodes.js';
+import { WebGPURenderer, PostProcessing } from 'three/webgpu';
+import { pass } from 'three/tsl';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CubeGrid } from './CubeGrid.js'; // Changed from ParticleGrid
+import { CubeGrid } from './CubeGrid.js';
 
 export class Visualizer {
     constructor(containerId) {
@@ -12,37 +12,32 @@ export class Visualizer {
         this.camera = null;
         this.renderer = null;
         this.controls = null;
-        this.grid = null; // Renamed from particleGrid
+        this.grid = null;
         this.postProcessing = null;
         this.clock = new THREE.Clock();
+        this.bloomStrength = 1.5;
 
         this.init();
     }
 
     async init() {
-        console.log("Visualizer: Initializing...");
-        // Scene
         this.scene = new THREE.Scene();
 
-        // Camera
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.position.set(0, 8, 10);
         this.camera.lookAt(0, 0, 0);
 
-        // Renderer
         this.renderer = new WebGPURenderer({ antialias: true, alpha: true });
         await this.renderer.init();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.setClearColor(0x000000, 0); // Transparent
+        this.renderer.setClearColor(0x000000, 1);
         this.container.appendChild(this.renderer.domElement);
 
-        // Controls
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambientLight);
 
@@ -50,18 +45,20 @@ export class Visualizer {
         dirLight.position.set(5, 10, 5);
         this.scene.add(dirLight);
 
-        // Init Cube Grid
         this.grid = new CubeGrid(this.scene, this.renderer);
-        // this.grid.init() is called in constructor
 
-        // Resize Handler
+        this.postProcessing = new PostProcessing(this.renderer);
+        const scenePass = pass(this.scene, this.camera);
+        const sceneColor = scenePass.getTextureNode('output');
+        this.bloomNode = bloom(sceneColor, this.bloomStrength, 0.5, 0.5);
+        this.postProcessing.outputNode = sceneColor.add(this.bloomNode);
+
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Start Loop
         this.animate();
     }
 
@@ -69,7 +66,6 @@ export class Visualizer {
         requestAnimationFrame(() => this.animate());
 
         const delta = this.clock.getDelta();
-        // const time = this.clock.getElapsedTime();
 
         this.controls.update();
 
@@ -77,20 +73,33 @@ export class Visualizer {
             this.grid.update(delta);
         }
 
-        this.renderer.renderAsync(this.scene, this.camera);
+        this.postProcessing.renderAsync();
+    }
+
+    setBloomStrength(value) {
+        this.bloomStrength = value;
+        if (this.bloomNode) {
+            this.bloomNode.strength.value = value;
+        }
     }
 
     triggerNote(note, velocity) {
-        // Map 48 (C3) -> Index 0
-        const cellIndex = note - 48;
+        const cellIndex = note % 16;
+        const hue = (note % 12) / 12;
         if (this.grid) {
-            this.grid.trigger(cellIndex, velocity);
+            this.grid.trigger(cellIndex, velocity, hue);
         }
     }
 
     updateCC(cc, value) {
         if (this.grid) {
             this.grid.setCC(cc, value);
+        }
+    }
+
+    setPhysics(params) {
+        if (this.grid) {
+            this.grid.setPhysics(params);
         }
     }
 }

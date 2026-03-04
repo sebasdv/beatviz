@@ -12,14 +12,12 @@ export class MidiManager {
 
     async init() {
         if (!navigator.requestMIDIAccess) {
-            console.warn('Web MIDI API not supported in this browser.');
             return false;
         }
 
         try {
             this.access = await navigator.requestMIDIAccess();
 
-            // Listen to all inputs
             for (const input of this.access.inputs.values()) {
                 input.onmidimessage = (msg) => this.onMessage(msg);
             }
@@ -30,10 +28,8 @@ export class MidiManager {
                 }
             };
 
-            console.log('MIDI Access Granted');
             return true;
-        } catch (err) {
-            console.error('MIDI Access Failed', err);
+        } catch {
             return false;
         }
     }
@@ -43,15 +39,12 @@ export class MidiManager {
         const command = status & 0xF0;
         const channel = status & 0x0F;
 
-        // Note On (144) - Channel 5
         if (command === 144 && channel === this.noteChannel && data2 > 0) {
             this.emit('noteOn', { note: data1, velocity: data2 / 127 });
         }
-        // Note Off (128) - Channel 5
         else if ((command === 128 || (command === 144 && data2 === 0)) && channel === this.noteChannel) {
             this.emit('noteOff', { note: data1 });
         }
-        // Control Change (176) - Channel 2
         else if (command === 176 && channel === this.ccChannel) {
             this.emit('cc', { cc: data1, value: data2 / 127 });
         }
