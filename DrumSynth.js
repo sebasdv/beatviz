@@ -40,60 +40,44 @@ export class DrumSynth {
         osc.stop(now + 0.5);
     }
 
-    // ─── Clap ────────────────────────────────────────────────────────────────
+    // ─── Snare (808) ─────────────────────────────────────────────────────────
     snare(velocity = 1.0) {
         const ctx = this._ctx();
         const now = ctx.currentTime;
 
-        // 909 clap = 3 short attack bursts + 1 longer body tail
-        const attacks = [0, 0.008, 0.018];
-        attacks.forEach((delay) => {
-            const src = this._noiseSource(ctx, 0.04);
-            const bp = ctx.createBiquadFilter();
-            bp.type = 'bandpass';
-            bp.frequency.value = 1100;
-            bp.Q.value = 0.5;
+        // tonal body: triangle osc with pitch drop (808 snare is very tonal)
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(160, now + 0.05);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
 
-            const g = ctx.createGain();
-            g.gain.setValueAtTime(velocity * 1.2, now + delay);
-            g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.025);
+        const oscGain = ctx.createGain();
+        oscGain.gain.setValueAtTime(velocity * 1.0, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
-            src.connect(bp); bp.connect(g); g.connect(ctx.destination);
-            src.start(now + delay);
-            src.stop(now + delay + 0.03);
-        });
+        // noise layer: tight highpass for the snappy top
+        const noise = this._noiseSource(ctx, 0.35);
 
-        // body: longer tail with resonant bandpass + reverb-like all-pass chain
-        const body = this._noiseSource(ctx, 0.3);
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 2000;
 
-        const bp1 = ctx.createBiquadFilter();
-        bp1.type = 'bandpass';
-        bp1.frequency.value = 900;
-        bp1.Q.value = 1.2;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(velocity * 0.6, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
-        const bp2 = ctx.createBiquadFilter();
-        bp2.type = 'highshelf';
-        bp2.frequency.value = 3000;
-        bp2.gain.value = 6;
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
 
-        const ap1 = ctx.createBiquadFilter();
-        ap1.type = 'allpass';
-        ap1.frequency.value = 800;
+        noise.connect(hp);
+        hp.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
 
-        const ap2 = ctx.createBiquadFilter();
-        ap2.type = 'allpass';
-        ap2.frequency.value = 1200;
-
-        const bodyGain = ctx.createGain();
-        bodyGain.gain.setValueAtTime(velocity * 1.5, now + 0.018);
-        bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
-        body.connect(bp1); bp1.connect(bp2); bp2.connect(ap1);
-        ap1.connect(ap2); ap2.connect(bodyGain);
-        bodyGain.connect(ctx.destination);
-
-        body.start(now + 0.018);
-        body.stop(now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.35);
+        noise.start(now);
+        noise.stop(now + 0.35);
     }
 
     _noiseSource(ctx, duration) {
