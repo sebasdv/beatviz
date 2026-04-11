@@ -1,6 +1,7 @@
 import { MidiManager } from './MidiManager.js';
 import { Visualizer } from './Visualizer.js';
 import { CCMapper } from './CCMapper.js';
+import { DrumSynth } from './DrumSynth.js';
 import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
 
 const startButton = document.getElementById('start-audio');
@@ -9,10 +10,20 @@ const overlay = document.getElementById('overlay');
 let midiManager;
 let visualizer;
 let ccMapper;
+let drumSynth;
+
+// note → drum instrument
+const NOTE_TO_DRUM = {
+    48: (synth, vel) => synth.kick(vel),
+    49: (synth, vel) => synth.snare(vel),
+    50: (synth, vel) => synth.openHihat(vel),
+    51: (synth, vel) => synth.closedHihat(vel),
+};
 
 async function init() {
     visualizer = new Visualizer('canvas-container');
     ccMapper = new CCMapper();
+    drumSynth = new DrumSynth();
 
     midiManager = new MidiManager();
     const midiAccess = await midiManager.init();
@@ -29,6 +40,8 @@ async function init() {
 
     midiManager.on('noteOn', (data) => {
         visualizer.triggerNote(data.note, data.velocity);
+        const fn = NOTE_TO_DRUM[data.note];
+        if (fn) fn(drumSynth, data.velocity);
     });
 
     midiManager.on('cc', (data) => {
@@ -116,7 +129,10 @@ function setupKeyboard() {
         const key = e.key.toLowerCase();
         if (key in KEY_TO_NOTE && !heldKeys.has(key)) {
             heldKeys.add(key);
-            visualizer.triggerNote(KEY_TO_NOTE[key], 1.0);
+            const note = KEY_TO_NOTE[key];
+            visualizer.triggerNote(note, 1.0);
+            const fn = NOTE_TO_DRUM[note];
+            if (fn) fn(drumSynth, 1.0);
         }
     });
 
