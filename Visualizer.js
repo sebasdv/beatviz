@@ -84,7 +84,7 @@ export class Visualizer {
     }
 
     triggerNote(note, velocity) {
-        const cellIndex = note % 16;
+        const cellIndex = note % 4;
         const hue = (note % 12) / 12;
         if (this.grid) {
             this.grid.trigger(cellIndex, velocity, hue);

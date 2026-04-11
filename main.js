@@ -103,12 +103,9 @@ function setupGUI() {
     addMappable(folderPhysics, physicsParams, 'impulseForce', 1,   40,  'Impulse Force', v => visualizer.setPhysics({ impulseForce: v }));
 }
 
-// Keyboard → MIDI note mapping (4x4 grid, notes 48-63 = C3 to D#4)
+// Keyboard → MIDI note mapping (2x2 grid, notes 48-51 = C3 to D#3)
 const KEY_TO_NOTE = {
     'q': 48, 'w': 49, 'e': 50, 'r': 51,
-    'a': 52, 's': 53, 'd': 54, 'f': 55,
-    'z': 56, 'x': 57, 'c': 58, 'v': 59,
-    '1': 60, '2': 61, '3': 62, '4': 63,
 };
 
 function setupKeyboard() {
