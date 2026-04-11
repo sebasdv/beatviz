@@ -16,8 +16,8 @@ let drumSynth;
 const NOTE_TO_DRUM = {
     48: (synth, vel) => synth.kick(vel),
     49: (synth, vel) => synth.snare(vel),
-    50: (synth, vel) => synth.openHihat(vel),
-    51: (synth, vel) => synth.closedHihat(vel),
+    50: (synth, vel) => synth.closedHihat(vel),
+    51: (synth, vel) => synth.openHihat(vel),
 };
 
 async function init() {
