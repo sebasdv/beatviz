@@ -40,48 +40,40 @@ export class DrumSynth {
         osc.stop(now + 0.5);
     }
 
-    // ─── Snare ───────────────────────────────────────────────────────────────
+    // ─── Clap ────────────────────────────────────────────────────────────────
     snare(velocity = 1.0) {
         const ctx = this._ctx();
         const now = ctx.currentTime;
 
-        // tonal body (oscillator)
-        const osc = ctx.createOscillator();
-        const oscGain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        oscGain.gain.setValueAtTime(velocity * 0.7, now);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        // 909 clap = 4 bursts of filtered noise in rapid succession
+        const delays = [0, 0.01, 0.02, 0.04];
+        delays.forEach((delay) => {
+            const bufferSize = ctx.sampleRate * 0.05;
+            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
-        // noise layer (snare wires)
-        const bufferSize = ctx.sampleRate * 0.3;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = ctx.createBufferSource();
+            noise.buffer = noiseBuffer;
 
-        const noise = ctx.createBufferSource();
-        noise.buffer = noiseBuffer;
+            const bandpass = ctx.createBiquadFilter();
+            bandpass.type = 'bandpass';
+            bandpass.frequency.value = 1200;
+            bandpass.Q.value = 0.8;
 
-        const noiseFilter = ctx.createBiquadFilter();
-        noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 1500;
+            const gain = ctx.createGain();
+            const isLast = delay === delays[delays.length - 1];
+            const duration = isLast ? 0.15 : 0.02;
+            gain.gain.setValueAtTime(velocity, now + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
 
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(velocity * 0.8, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            noise.connect(bandpass);
+            bandpass.connect(gain);
+            gain.connect(ctx.destination);
 
-        osc.connect(oscGain);
-        oscGain.connect(ctx.destination);
-
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + 0.2);
-        noise.start(now);
-        noise.stop(now + 0.3);
+            noise.start(now + delay);
+            noise.stop(now + delay + duration + 0.01);
+        });
     }
 
     // ─── Open Hihat ──────────────────────────────────────────────────────────
