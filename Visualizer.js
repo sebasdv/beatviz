@@ -103,7 +103,11 @@ export class Visualizer {
             this.grid.trigger(cellIndex, velocity, hue);
         }
         if (note === 48) {
-            this.rotVelocity += velocity * this.rotImpulse;
+            const sign = velocity >= 1.0 ? -1 : 1;
+            this.rotVelocity += sign * velocity * this.rotImpulse;
+        }
+        if (note === 51) {
+            this.rotDamping = 0.80 + Math.random() * 0.19; // 0.80–0.99
         }
     }
 
