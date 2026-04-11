@@ -148,3 +148,19 @@ startButton.addEventListener('click', () => {
     startButton.disabled = true;
     setupKeyboard();
 });
+
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        fullscreenBtn.textContent = '✕';
+    } else {
+        document.exitFullscreen();
+        fullscreenBtn.textContent = '⛶';
+    }
+});
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+        fullscreenBtn.textContent = '⛶';
+    }
+});

@@ -92,6 +92,28 @@ button:active {
     transform: translate(2px, 2px);
 }
 
+#fullscreen-btn {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 20;
+    padding: 0.5rem 0.75rem;
+    font-size: 1.2rem;
+    line-height: 1;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+#fullscreen-btn:hover {
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    opacity: 1;
+}
+
 /* GUI Tweaks (optional, if you want to brutalize lil-gui) */
 .lil-gui {
     --background-color: #f0f0f0;
