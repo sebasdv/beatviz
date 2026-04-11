@@ -45,35 +45,65 @@ export class DrumSynth {
         const ctx = this._ctx();
         const now = ctx.currentTime;
 
-        // 909 clap = 4 bursts of filtered noise in rapid succession
-        const delays = [0, 0.01, 0.02, 0.04];
-        delays.forEach((delay) => {
-            const bufferSize = ctx.sampleRate * 0.05;
-            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        // 909 clap = 3 short attack bursts + 1 longer body tail
+        const attacks = [0, 0.008, 0.018];
+        attacks.forEach((delay) => {
+            const src = this._noiseSource(ctx, 0.04);
+            const bp = ctx.createBiquadFilter();
+            bp.type = 'bandpass';
+            bp.frequency.value = 1100;
+            bp.Q.value = 0.5;
 
-            const noise = ctx.createBufferSource();
-            noise.buffer = noiseBuffer;
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(velocity * 1.2, now + delay);
+            g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.025);
 
-            const bandpass = ctx.createBiquadFilter();
-            bandpass.type = 'bandpass';
-            bandpass.frequency.value = 1200;
-            bandpass.Q.value = 0.8;
-
-            const gain = ctx.createGain();
-            const isLast = delay === delays[delays.length - 1];
-            const duration = isLast ? 0.15 : 0.02;
-            gain.gain.setValueAtTime(velocity, now + delay);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
-
-            noise.connect(bandpass);
-            bandpass.connect(gain);
-            gain.connect(ctx.destination);
-
-            noise.start(now + delay);
-            noise.stop(now + delay + duration + 0.01);
+            src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+            src.start(now + delay);
+            src.stop(now + delay + 0.03);
         });
+
+        // body: longer tail with resonant bandpass + reverb-like all-pass chain
+        const body = this._noiseSource(ctx, 0.3);
+
+        const bp1 = ctx.createBiquadFilter();
+        bp1.type = 'bandpass';
+        bp1.frequency.value = 900;
+        bp1.Q.value = 1.2;
+
+        const bp2 = ctx.createBiquadFilter();
+        bp2.type = 'highshelf';
+        bp2.frequency.value = 3000;
+        bp2.gain.value = 6;
+
+        const ap1 = ctx.createBiquadFilter();
+        ap1.type = 'allpass';
+        ap1.frequency.value = 800;
+
+        const ap2 = ctx.createBiquadFilter();
+        ap2.type = 'allpass';
+        ap2.frequency.value = 1200;
+
+        const bodyGain = ctx.createGain();
+        bodyGain.gain.setValueAtTime(velocity * 1.5, now + 0.018);
+        bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        body.connect(bp1); bp1.connect(bp2); bp2.connect(ap1);
+        ap1.connect(ap2); ap2.connect(bodyGain);
+        bodyGain.connect(ctx.destination);
+
+        body.start(now + 0.018);
+        body.stop(now + 0.25);
+    }
+
+    _noiseSource(ctx, duration) {
+        const bufferSize = Math.ceil(ctx.sampleRate * (duration + 0.05));
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        return src;
     }
 
     // ─── Open Hihat ──────────────────────────────────────────────────────────
