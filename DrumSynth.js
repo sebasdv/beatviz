@@ -40,44 +40,42 @@ export class DrumSynth {
         osc.stop(now + 0.5);
     }
 
-    // ─── Snare (808) ─────────────────────────────────────────────────────────
+    // ─── Snare (909) ─────────────────────────────────────────────────────────
     snare(velocity = 1.0) {
         const ctx = this._ctx();
         const now = ctx.currentTime;
 
-        // tonal body: triangle osc with pitch drop (808 snare is very tonal)
+        // tonal body (oscillator)
         const osc = ctx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(160, now + 0.05);
-        osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
-
         const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(velocity * 1.0, now);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+        oscGain.gain.setValueAtTime(velocity * 0.7, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
-        // noise layer: tight highpass for the snappy top
-        const noise = this._noiseSource(ctx, 0.35);
+        // noise layer (snare wires)
+        const noise = this._noiseSource(ctx, 0.3);
 
-        const hp = ctx.createBiquadFilter();
-        hp.type = 'highpass';
-        hp.frequency.value = 2000;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.value = 1500;
 
         const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(velocity * 0.6, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        noiseGain.gain.setValueAtTime(velocity * 0.8, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
         osc.connect(oscGain);
         oscGain.connect(ctx.destination);
 
-        noise.connect(hp);
-        hp.connect(noiseGain);
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
         noiseGain.connect(ctx.destination);
 
         osc.start(now);
-        osc.stop(now + 0.35);
+        osc.stop(now + 0.2);
         noise.start(now);
-        noise.stop(now + 0.35);
+        noise.stop(now + 0.3);
     }
 
     _noiseSource(ctx, duration) {
