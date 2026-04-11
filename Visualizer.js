@@ -13,9 +13,14 @@ export class Visualizer {
         this.renderer = null;
         this.controls = null;
         this.grid = null;
+        this.gridGroup = null;
         this.postProcessing = null;
         this.clock = new THREE.Clock();
         this.bloomStrength = 1.5;
+
+        this.rotVelocity = 0;
+        this.rotDamping = 0.95;
+        this.rotImpulse = 0.8;
 
         this.init();
     }
@@ -45,7 +50,9 @@ export class Visualizer {
         dirLight.position.set(5, 10, 5);
         this.scene.add(dirLight);
 
-        this.grid = new CubeGrid(this.scene, this.renderer);
+        this.gridGroup = new THREE.Group();
+        this.scene.add(this.gridGroup);
+        this.grid = new CubeGrid(this.gridGroup, this.renderer);
 
         this.postProcessing = new PostProcessing(this.renderer);
         const scenePass = pass(this.scene, this.camera);
@@ -73,6 +80,12 @@ export class Visualizer {
             this.grid.update(delta);
         }
 
+        if (this.gridGroup && this.rotVelocity !== 0) {
+            this.gridGroup.rotation.y += this.rotVelocity * delta;
+            this.rotVelocity *= this.rotDamping;
+            if (Math.abs(this.rotVelocity) < 0.001) this.rotVelocity = 0;
+        }
+
         this.postProcessing.renderAsync();
     }
 
@@ -88,6 +101,9 @@ export class Visualizer {
         const hue = (note % 12) / 12;
         if (this.grid) {
             this.grid.trigger(cellIndex, velocity, hue);
+        }
+        if (note === 48) {
+            this.rotVelocity += velocity * this.rotImpulse;
         }
     }
 
