@@ -6,7 +6,6 @@ export class MidiManager {
             noteOff: [],
             cc: []
         };
-        this.noteChannel = 0; // Channel 1 (0-indexed)
         this.ccChannel = 0;   // Channel 1 (0-indexed)
     }
 
@@ -39,11 +38,11 @@ export class MidiManager {
         const command = status & 0xF0;
         const channel = status & 0x0F;
 
-        if (command === 144 && channel === this.noteChannel && data2 > 0) {
-            this.emit('noteOn', { note: data1, velocity: data2 / 127 });
+        if (command === 144 && data2 > 0) {
+            this.emit('noteOn', { note: data1, velocity: data2 / 127, channel });
         }
-        else if ((command === 128 || (command === 144 && data2 === 0)) && channel === this.noteChannel) {
-            this.emit('noteOff', { note: data1 });
+        else if (command === 128 || (command === 144 && data2 === 0)) {
+            this.emit('noteOff', { note: data1, channel });
         }
         else if (command === 176 && channel === this.ccChannel) {
             this.emit('cc', { cc: data1, value: data2 / 127 });

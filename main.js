@@ -12,12 +12,12 @@ let visualizer;
 let ccMapper;
 let drumSynth;
 
-// note → drum instrument
-const NOTE_TO_DRUM = {
-    48: (synth, vel) => synth.kick(vel),
-    49: (synth, vel) => synth.snare(vel),
-    50: (synth, vel) => synth.closedHihat(vel),
-    51: (synth, vel) => synth.openHihat(vel),
+// instrumento → { canal MIDI (0-indexed), nota por defecto }
+const INSTRUMENTS = {
+    kick:        { defaultNote: 48, channel: 0 },
+    snare:       { defaultNote: 49, channel: 0 },
+    closedHihat: { defaultNote: 50, channel: 0 },
+    openHihat:   { defaultNote: 51, channel: 0 },
 };
 
 async function init() {
@@ -38,10 +38,26 @@ async function init() {
 
     setupGUI();
 
-    midiManager.on('noteOn', (data) => {
-        visualizer.triggerNote(data.note, data.velocity);
-        const fn = NOTE_TO_DRUM[data.note];
-        if (fn) fn(drumSynth, data.velocity);
+    midiManager.on('noteOn', ({ note, velocity, channel }) => {
+        if (channel === INSTRUMENTS.kick.channel) {
+            drumSynth.kick(velocity, note);
+            visualizer.triggerNote(48, velocity);
+            return;
+        }
+        if (channel === INSTRUMENTS.snare.channel && note === INSTRUMENTS.snare.defaultNote) {
+            drumSynth.snare(velocity);
+            visualizer.triggerNote(49, velocity);
+            return;
+        }
+        if (channel === INSTRUMENTS.closedHihat.channel && note === INSTRUMENTS.closedHihat.defaultNote) {
+            drumSynth.closedHihat(velocity);
+            visualizer.triggerNote(50, velocity);
+            return;
+        }
+        if (channel === INSTRUMENTS.openHihat.channel && note === INSTRUMENTS.openHihat.defaultNote) {
+            drumSynth.openHihat(velocity);
+            visualizer.triggerNote(51, velocity);
+        }
     });
 
     midiManager.on('cc', (data) => {
@@ -114,6 +130,17 @@ function setupGUI() {
     addMappable(folderPhysics, physicsParams, 'damping',      0.5, 1.0, 'Damping',       v => visualizer.setPhysics({ damping: v }));
     addMappable(folderPhysics, physicsParams, 'decaySpeed',   0.5, 8,   'Color Decay',   v => visualizer.setPhysics({ decaySpeed: v }));
     addMappable(folderPhysics, physicsParams, 'impulseForce', 1,   40,  'Impulse Force', v => visualizer.setPhysics({ impulseForce: v }));
+
+    const kick808Params = { decay: 0.8 };
+    const folder808 = gui.addFolder('808 Kick');
+    folder808.add(kick808Params, 'decay', 0.2, 2.5).name('Decay (s)').onChange(v => { drumSynth.kickDecay = v; });
+
+    const midiChParams = { kick: 1, snare: 1, closedHH: 1, openHH: 1 };
+    const folderMidi = gui.addFolder('MIDI Channels');
+    folderMidi.add(midiChParams, 'kick',     1, 16, 1).name('Kick').onChange(v    => { INSTRUMENTS.kick.channel        = v - 1; });
+    folderMidi.add(midiChParams, 'snare',    1, 16, 1).name('Snare').onChange(v   => { INSTRUMENTS.snare.channel       = v - 1; });
+    folderMidi.add(midiChParams, 'closedHH', 1, 16, 1).name('Closed HH').onChange(v => { INSTRUMENTS.closedHihat.channel = v - 1; });
+    folderMidi.add(midiChParams, 'openHH',   1, 16, 1).name('Open HH').onChange(v => { INSTRUMENTS.openHihat.channel   = v - 1; });
 }
 
 // Keyboard → MIDI note mapping (2x2 grid, notes 48-51 = C3 to D#3)
@@ -130,9 +157,19 @@ function setupKeyboard() {
         if (key in KEY_TO_NOTE && !heldKeys.has(key)) {
             heldKeys.add(key);
             const note = KEY_TO_NOTE[key];
-            visualizer.triggerNote(note, 1.0);
-            const fn = NOTE_TO_DRUM[note];
-            if (fn) fn(drumSynth, 1.0);
+            if (note === 48) {
+                drumSynth.kick(1.0, null);
+                visualizer.triggerNote(48, 1.0);
+            } else if (note === 49) {
+                drumSynth.snare(1.0);
+                visualizer.triggerNote(49, 1.0);
+            } else if (note === 50) {
+                drumSynth.closedHihat(1.0);
+                visualizer.triggerNote(50, 1.0);
+            } else if (note === 51) {
+                drumSynth.openHihat(1.0);
+                visualizer.triggerNote(51, 1.0);
+            }
         }
     });
 

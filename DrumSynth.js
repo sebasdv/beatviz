@@ -2,6 +2,7 @@ export class DrumSynth {
     constructor() {
         this.ctx = null;
         this.openHihatNode = null; // track for choke
+        this.kickDecay = 0.8;
     }
 
     _ctx() {
@@ -11,33 +12,47 @@ export class DrumSynth {
         return this.ctx;
     }
 
-    // ─── Kick ────────────────────────────────────────────────────────────────
-    kick(velocity = 1.0) {
+    // ─── Kick 808 ────────────────────────────────────────────────────────────
+    kick(velocity = 1.0, midiNote = null) {
         const ctx = this._ctx();
         const now = ctx.currentTime;
+        const decay = this.kickDecay;
 
+        const targetHz = Math.max(
+            midiNote !== null ? 440 * Math.pow(2, (midiNote - 69) / 12) : 30,
+            20
+        );
+        const startHz = Math.max(targetHz * 5.5, 160);
+
+        // sine body — pure 808 sub
         const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(startHz, now);
+        osc.frequency.exponentialRampToValueAtTime(targetHz, now + decay * 0.9);
+
         const gain = ctx.createGain();
-        const distortion = ctx.createWaveShaper();
+        gain.gain.setValueAtTime(velocity * 1.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
 
-        // pitch envelope: 150Hz → 50Hz in 0.05s
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
-
-        // amplitude envelope
-        gain.gain.setValueAtTime(velocity * 1.5, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
-        // soft distortion for punch
-        distortion.curve = this._makeDistortionCurve(50);
-
-        osc.connect(distortion);
-        distortion.connect(gain);
+        osc.connect(gain);
         gain.connect(ctx.destination);
-
         osc.start(now);
-        osc.stop(now + 0.5);
+        osc.stop(now + decay + 0.05);
+
+        // attack click for definition
+        const click = ctx.createOscillator();
+        click.type = 'sine';
+        click.frequency.setValueAtTime(1200, now);
+        click.frequency.exponentialRampToValueAtTime(80, now + 0.008);
+
+        const clickGain = ctx.createGain();
+        clickGain.gain.setValueAtTime(velocity * 0.6, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+
+        click.connect(clickGain);
+        clickGain.connect(ctx.destination);
+        click.start(now);
+        click.stop(now + 0.015);
     }
 
     // ─── Snare (909) ─────────────────────────────────────────────────────────
