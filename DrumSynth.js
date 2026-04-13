@@ -14,9 +14,9 @@ export class DrumSynth {
     }
 
     // ─── Kick 808 ────────────────────────────────────────────────────────────
-    kick(velocity = 1.0, midiNote = null) {
+    kick(velocity = 1.0, midiNote = null, startTime = null) {
         const ctx = this._ctx();
-        const now = ctx.currentTime;
+        const now = startTime ?? ctx.currentTime;
         const decay = this.kickDecay;
 
         // legato choke: cortar kick anterior en 2ms
@@ -71,9 +71,9 @@ export class DrumSynth {
     }
 
     // ─── Snare (909) ─────────────────────────────────────────────────────────
-    snare(velocity = 1.0) {
+    snare(velocity = 1.0, startTime = null) {
         const ctx = this._ctx();
-        const now = ctx.currentTime;
+        const now = startTime ?? ctx.currentTime;
 
         // tonal body (oscillator)
         const osc = ctx.createOscillator();
@@ -119,9 +119,9 @@ export class DrumSynth {
     }
 
     // ─── Open Hihat ──────────────────────────────────────────────────────────
-    openHihat(velocity = 1.0) {
+    openHihat(velocity = 1.0, startTime = null) {
         const ctx = this._ctx();
-        const now = ctx.currentTime;
+        const now = startTime ?? ctx.currentTime;
 
         // choke previous open hihat
         this._chokeOpenHihat(now);
@@ -131,9 +131,9 @@ export class DrumSynth {
     }
 
     // ─── Closed Hihat ────────────────────────────────────────────────────────
-    closedHihat(velocity = 1.0) {
+    closedHihat(velocity = 1.0, startTime = null) {
         const ctx = this._ctx();
-        const now = ctx.currentTime;
+        const now = startTime ?? ctx.currentTime;
 
         // choke open hihat
         this._chokeOpenHihat(now);

@@ -2,6 +2,9 @@ import { MidiManager } from './MidiManager.js';
 import { Visualizer } from './Visualizer.js';
 import { CCMapper } from './CCMapper.js';
 import { DrumSynth } from './DrumSynth.js';
+import { SeqEngine }  from './SeqEngine.js';
+import { SeqStorage } from './SeqStorage.js';
+import { SeqUI }      from './SeqUI.js';
 import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
 
 const startButton = document.getElementById('start-audio');
@@ -24,6 +27,11 @@ async function init() {
     visualizer = new Visualizer('canvas-container');
     ccMapper = new CCMapper();
     drumSynth = new DrumSynth();
+
+    const seqEngine  = new SeqEngine(drumSynth, visualizer);
+    const seqStorage = new SeqStorage();
+    const seqUI      = new SeqUI(seqEngine, seqStorage);
+    seqUI.init();
 
     midiManager = new MidiManager();
     const midiAccess = await midiManager.init();
