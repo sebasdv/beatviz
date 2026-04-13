@@ -33,16 +33,18 @@ export class DrumSynth {
             midiNote !== null ? 440 * Math.pow(2, (midiNote - 69) / 12) : 30,
             20
         );
-        const startHz = Math.max(targetHz * 5.5, 160);
+        // startHz proporcional al target — notas bajas arrancan más cerca del destino
+        const startHz = targetHz * 2.5;
 
         // sine body — pure 808 sub
         const osc = ctx.createOscillator();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(startHz, now);
-        osc.frequency.exponentialRampToValueAtTime(targetHz, now + decay * 0.9);
+        osc.frequency.exponentialRampToValueAtTime(targetHz, now + 0.04); // sweep rápido al pitch
+        osc.frequency.setValueAtTime(targetHz, now + 0.04);               // sostener en target
 
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(velocity * 1.8, now);
+        gain.gain.setValueAtTime(velocity * 2.0, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
 
         osc.connect(gain);
