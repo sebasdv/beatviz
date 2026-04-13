@@ -8,8 +8,7 @@ export class SeqUI {
         this._storage     = storage;
         this._panel       = null;
         this._activeSlot  = 0;
-        this._playingStep = [null, null, null, null]; // last fired step per track
-        this._page        = [0, 0, 0, 0];             // current page per track
+        this._playingStep = [null, null, null, null];
         this._popover     = null;
     }
 
@@ -107,7 +106,6 @@ export class SeqUI {
             hdr.querySelector('#seq-bpm').value   = p.bpm;
             hdr.querySelector('#seq-swing').value  = p.swing;
             swingVal.textContent = p.swing + '%';
-            this._page = [0, 0, 0, 0];
             this._redrawAllTracks();
         });
 
@@ -116,8 +114,7 @@ export class SeqUI {
     }
 
     _buildTrackRow(t) {
-        const track = this._engine.pattern.tracks[t];
-        const row   = document.createElement('div');
+        const row = document.createElement('div');
         row.className = 'seq-track';
         row.dataset.track = t;
 
@@ -126,63 +123,19 @@ export class SeqUI {
         label.textContent = TRACK_LABELS[t];
 
         const stepsDiv = document.createElement('div');
-        stepsDiv.className  = 'seq-steps';
-        stepsDiv.id         = `seq-steps-${t}`;
+        stepsDiv.className = 'seq-steps';
+        stepsDiv.id        = `seq-steps-${t}`;
 
-        const meta = document.createElement('div');
-        meta.className = 'seq-track-meta';
-
-        // Page navigation
-        const prevBtn = document.createElement('button');
-        prevBtn.className   = 'seq-page-btn';
-        prevBtn.textContent = '‹';
-        prevBtn.addEventListener('click', () => {
-            if (this._page[t] > 0) { this._page[t]--; this._redrawSteps(t); }
-        });
-
-        const nextBtn = document.createElement('button');
-        nextBtn.className   = 'seq-page-btn';
-        nextBtn.textContent = '›';
-        nextBtn.addEventListener('click', () => {
-            const maxPage = Math.floor((track.length - 1) / 16);
-            if (this._page[t] < maxPage) { this._page[t]++; this._redrawSteps(t); }
-        });
-
-        // Track length selector
-        const lenLabel = document.createElement('span');
-        lenLabel.textContent = 'LEN';
-
-        const lenSel = document.createElement('select');
-        lenSel.className = 'seq-len-sel';
-        lenSel.id        = `seq-len-${t}`;
-        for (let i = 1; i <= 64; i++) {
-            const opt   = document.createElement('option');
-            opt.value   = i;
-            opt.text    = i;
-            if (i === track.length) opt.selected = true;
-            lenSel.appendChild(opt);
-        }
-        lenSel.addEventListener('change', e => {
-            this._engine.setTrackLength(t, parseInt(e.target.value));
-            this._page[t] = 0;
-            this._redrawSteps(t);
-        });
-
-        meta.append(prevBtn, nextBtn, lenLabel, lenSel);
-        row.append(label, stepsDiv, meta);
-
+        row.append(label, stepsDiv);
         this._renderSteps(t, stepsDiv);
         return row;
     }
 
     _renderSteps(trackIdx, container) {
         container.innerHTML = '';
-        const track   = this._engine.pattern.tracks[trackIdx];
-        const page    = this._page[trackIdx];
-        const start   = page * 16;
-        const end     = Math.min(start + 16, track.length);
+        const track = this._engine.pattern.tracks[trackIdx];
 
-        for (let s = start; s < end; s++) {
+        for (let s = 0; s < 16; s++) {
             const step = track.steps[s];
             const btn  = document.createElement('button');
             btn.className    = 'seq-step';
@@ -215,8 +168,6 @@ export class SeqUI {
     _redrawAllTracks() {
         for (let t = 0; t < 4; t++) {
             this._redrawSteps(t);
-            const lenSel = document.getElementById(`seq-len-${t}`);
-            if (lenSel) lenSel.value = this._engine.pattern.tracks[t].length;
         }
     }
 
@@ -249,27 +200,13 @@ export class SeqUI {
 
     _registerEngineCallback() {
         this._engine.onStepFire((trackIdx, stepIdx) => {
-            // Remove playing from previous step of this track
+            const container = document.getElementById(`seq-steps-${trackIdx}`);
+            if (!container) return;
+            const btns = container.querySelectorAll('.seq-step');
+
             const prev = this._playingStep[trackIdx];
-            if (prev !== null) {
-                const prevPage = Math.floor(prev / 16);
-                if (prevPage === this._page[trackIdx]) {
-                    const container = document.getElementById(`seq-steps-${trackIdx}`);
-                    const btns = container?.querySelectorAll('.seq-step');
-                    const localIdx = prev - this._page[trackIdx] * 16;
-                    btns?.[localIdx]?.classList.remove('playing');
-                }
-            }
-
-            // Add playing to current step
-            const page = Math.floor(stepIdx / 16);
-            if (page === this._page[trackIdx]) {
-                const container  = document.getElementById(`seq-steps-${trackIdx}`);
-                const btns       = container?.querySelectorAll('.seq-step');
-                const localIdx   = stepIdx - this._page[trackIdx] * 16;
-                btns?.[localIdx]?.classList.add('playing');
-            }
-
+            if (prev !== null) btns[prev]?.classList.remove('playing');
+            btns[stepIdx]?.classList.add('playing');
             this._playingStep[trackIdx] = stepIdx;
         });
     }

@@ -4,11 +4,10 @@ function createStep(midiNote = 48) {
     return { active: false, velocity: 100, probability: 100, midiNote };
 }
 
-function createTrack(midiNote, length = 16) {
+function createTrack(midiNote) {
     return {
         midiNote,
-        length,
-        steps: Array.from({ length: 64 }, () => createStep(midiNote)),
+        steps: Array.from({ length: 16 }, () => createStep(midiNote)),
     };
 }
 
@@ -115,13 +114,6 @@ export class SeqEngine {
         this._scheduleAutoSave();
     }
 
-    setTrackLength(trackIdx, length) {
-        const track = this.pattern.tracks[trackIdx];
-        if (!track) return;
-        track.length = Math.max(1, Math.min(64, length));
-        this._scheduleAutoSave();
-    }
-
     // ── Playhead callback ─────────────────────────────────────────────────────
 
     onStepFire(callback) {
@@ -167,7 +159,7 @@ export class SeqEngine {
             if (!step.active) continue;
             if (Math.random() * 100 > step.probability) continue;
 
-            this._fireSoundAt(t, si, step.velocity, step.midiNote, time);
+            this._fireSoundAt(t, step.velocity, step.midiNote, time);
 
             // Notify UI for playhead — delayed to match audio
             const delayMs = Math.max(0, (time - this._ctx.currentTime) * 1000);
@@ -181,17 +173,21 @@ export class SeqEngine {
     _advance() {
         const stepDuration = (60 / this.pattern.bpm) / 4; // 1/16 note
         const isOdd        = (this._globalStep & 1) === 1;
-        const swingDelay   = isOdd ? stepDuration * this.pattern.swing / 100 : 0;
+        // Swing: par avanza menos, impar avanza más — suma total siempre = 2 * stepDuration
+        const swingOffset  = stepDuration * this.pattern.swing / 100;
+        const thisStepDur  = isOdd
+            ? stepDuration + swingOffset   // impar: llega tarde
+            : stepDuration - swingOffset;  // par: llega antes (compensación)
 
-        this._nextStepTime += stepDuration + swingDelay;
+        this._nextStepTime += thisStepDur;
         this._globalStep++;
 
         for (let t = 0; t < 4; t++) {
-            this._trackStep[t] = (this._trackStep[t] + 1) % this.pattern.tracks[t].length;
+            this._trackStep[t] = (this._trackStep[t] + 1) % 16;
         }
     }
 
-    _fireSoundAt(trackIdx, stepIdx, velocity, midiNote, startTime) {
+    _fireSoundAt(trackIdx, velocity, midiNote, startTime) {
         const vel = velocity / 127;
 
         switch (trackIdx) {
