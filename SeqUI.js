@@ -300,11 +300,18 @@ export class SeqUI {
 
         // Close on outside click
         setTimeout(() => {
-            document.addEventListener('click', this._boundClosePopover = () => this._closePopover(), { once: true });
+            this._boundClosePopover = (e) => {
+                if (!pop.contains(e.target)) this._closePopover();
+            };
+            document.addEventListener('click', this._boundClosePopover);
         }, 0);
     }
 
     _closePopover() {
+        if (this._boundClosePopover) {
+            document.removeEventListener('click', this._boundClosePopover);
+            this._boundClosePopover = null;
+        }
         this._popover?.remove();
         this._popover = null;
     }
