@@ -108,16 +108,6 @@ function setupGUI() {
     gui.domElement.style.maxHeight = '90vh';
     gui.domElement.style.overflowY = 'auto';
 
-    const params = {
-        noteToTrigger: 48,
-        velocity: 1.0,
-        trigger: () => visualizer.triggerNote(params.noteToTrigger, params.velocity),
-    };
-    const folderNotes = gui.addFolder('Simulate Notes');
-    folderNotes.add(params, 'noteToTrigger', 0, 127, 1).name('Note');
-    folderNotes.add(params, 'velocity', 0.1, 1.0).name('Velocity');
-    folderNotes.add(params, 'trigger').name('Trigger');
-
     const visualParams = {
         hueOffset:     0.0,
         baseBright:    0.0,
