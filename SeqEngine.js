@@ -1,7 +1,26 @@
 // ─── Data factories ───────────────────────────────────────────────────────────
 
+export const TRIG_CONDITIONS = [
+    'always',
+    '50p', '75p', '25p',
+    '1:2', '2:2',
+    '1:4', '2:4', '3:4', '4:4',
+    'never',
+];
+
+export function evalCondition(condition, barCount) {
+    if (condition === 'always' || condition == null) return true;
+    if (condition === 'never')  return false;
+    if (condition === '50p')    return barCount % 2 === 0;
+    if (condition === '75p')    return barCount % 4 !== 3;
+    if (condition === '25p')    return barCount % 4 === 0;
+    const [n, m] = condition.split(':').map(Number);
+    if (!isNaN(n) && !isNaN(m)) return (barCount % m) === (n - 1);
+    return true;
+}
+
 function createStep(midiNote = 48) {
-    return { active: false, velocity: 100, probability: 100, midiNote };
+    return { active: false, velocity: 100, condition: 'always', midiNote };
 }
 
 function createTrack(midiNote) {
@@ -40,6 +59,7 @@ export class SeqEngine {
         this._schedulerTimer = null;
         this._globalStep     = 0;
         this._trackStep      = [0, 0, 0, 0];
+        this._barCount       = [0, 0, 0, 0];
         this._nextStepTime   = 0;
         this._onStepFire     = null;
 
@@ -54,6 +74,7 @@ export class SeqEngine {
         this._isPlaying    = true;
         this._globalStep   = 0;
         this._trackStep    = [0, 0, 0, 0];
+        this._barCount     = [0, 0, 0, 0];
         this._nextStepTime = this._ctx.currentTime + 0.05;
 
         this._schedulerTimer = setInterval(
@@ -69,6 +90,7 @@ export class SeqEngine {
         this._schedulerTimer = null;
         this._globalStep = 0;
         this._trackStep  = [0, 0, 0, 0];
+        this._barCount   = [0, 0, 0, 0];
     }
 
     get isPlaying() { return this._isPlaying; }
@@ -99,10 +121,10 @@ export class SeqEngine {
         this._scheduleAutoSave();
     }
 
-    setStepProbability(trackIdx, stepIdx, value) {
+    setStepCondition(trackIdx, stepIdx, condition) {
         const step = this._step(trackIdx, stepIdx);
         if (!step) return;
-        step.probability = Math.max(0, Math.min(100, value));
+        step.condition = TRIG_CONDITIONS.includes(condition) ? condition : 'always';
         this._scheduleAutoSave();
     }
 
@@ -165,7 +187,7 @@ export class SeqEngine {
             }, delayMs);
 
             if (!step.active) continue;
-            if (Math.random() * 100 > step.probability) continue;
+            if (!evalCondition(step.condition, this._barCount[t])) continue;
 
             this._fireSoundAt(t, step.velocity, step.midiNote, time);
         }
@@ -184,7 +206,9 @@ export class SeqEngine {
         this._globalStep++;
 
         for (let t = 0; t < 4; t++) {
-            this._trackStep[t] = (this._trackStep[t] + 1) % 16;
+            const next = (this._trackStep[t] + 1) % 16;
+            if (next === 0) this._barCount[t]++;
+            this._trackStep[t] = next;
         }
     }
 

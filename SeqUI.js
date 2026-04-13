@@ -1,4 +1,15 @@
-import { SeqStorage } from './SeqStorage.js';
+import { SeqStorage, } from './SeqStorage.js';
+import { TRIG_CONDITIONS } from './SeqEngine.js';
+
+const COND_LABEL = {
+    'always': '—',
+    '50p':    '50%',
+    '75p':    '75%',
+    '25p':    '25%',
+    '1:2':    '1:2', '2:2': '2:2',
+    '1:4':    '1:4', '2:4': '2:4', '3:4': '3:4', '4:4': '4:4',
+    'never':  '∅',
+};
 
 const TRACK_LABELS = ['KICK', 'SNARE', 'C.HH', 'O.HH'];
 
@@ -141,8 +152,11 @@ export class SeqUI {
             btn.className    = 'seq-step';
             btn.dataset.step = s;
 
-            if (step.active)             btn.classList.add('active');
-            if (step.probability < 100)  btn.classList.add('has-prob');
+            if (step.active)                    btn.classList.add('active');
+            if (step.condition !== 'always')    btn.classList.add('has-cond');
+            if (step.condition !== 'always' && step.condition !== 'never') {
+                btn.dataset.cond = COND_LABEL[step.condition] ?? step.condition;
+            }
 
             // Left click: toggle
             btn.addEventListener('click', () => {
@@ -150,11 +164,22 @@ export class SeqUI {
                 btn.classList.toggle('active', track.steps[s].active);
             });
 
-            // Right click: edit popover
+            // Right click: edit popover (desktop)
             btn.addEventListener('contextmenu', e => {
                 e.preventDefault();
                 this._showPopover(trackIdx, s, btn);
             });
+
+            // Long-press: edit popover (mobile)
+            let _lpTimer = null;
+            btn.addEventListener('touchstart', e => {
+                _lpTimer = setTimeout(() => {
+                    e.preventDefault();
+                    this._showPopover(trackIdx, s, btn);
+                }, 500);
+            }, { passive: true });
+            btn.addEventListener('touchend',   () => clearTimeout(_lpTimer));
+            btn.addEventListener('touchmove',  () => clearTimeout(_lpTimer));
 
             container.appendChild(btn);
         }
@@ -231,25 +256,33 @@ export class SeqUI {
         const pop = document.createElement('div');
         pop.className = 'seq-popover';
 
+        const condOptions = TRIG_CONDITIONS.map(c =>
+            `<option value="${c}"${c === step.condition ? ' selected' : ''}>${COND_LABEL[c] ?? c}</option>`
+        ).join('');
+
         const isKick = trackIdx === 0;
         pop.innerHTML = `
             <div class="seq-pop-title">T${trackIdx + 1} · STEP ${stepIdx + 1}</div>
             <label>VEL <input type="range" min="1" max="127" value="${step.velocity}" class="pop-vel"></label>
-            <label>PROB <input type="range" min="0" max="100" value="${step.probability}" step="5" class="pop-prob"> <span class="pop-prob-val">${step.probability}%</span></label>
+            <label>COND <select class="pop-cond">${condOptions}</select></label>
             ${isKick ? `<label>NOTE <input type="number" min="0" max="127" value="${step.midiNote}" class="pop-note"></label>` : ''}
         `;
 
         pop.querySelector('.pop-vel').addEventListener('input', e => {
             this._engine.setStepVelocity(trackIdx, stepIdx, parseInt(e.target.value));
         });
-        const probInput = pop.querySelector('.pop-prob');
-        const probVal   = pop.querySelector('.pop-prob-val');
-        probInput.addEventListener('input', e => {
-            const v = parseInt(e.target.value);
-            this._engine.setStepProbability(trackIdx, stepIdx, v);
-            probVal.textContent = v + '%';
-            anchor.classList.toggle('has-prob', v < 100);
+
+        pop.querySelector('.pop-cond').addEventListener('change', e => {
+            const cond = e.target.value;
+            this._engine.setStepCondition(trackIdx, stepIdx, cond);
+            anchor.classList.toggle('has-cond', cond !== 'always');
+            if (cond !== 'always' && cond !== 'never') {
+                anchor.dataset.cond = COND_LABEL[cond] ?? cond;
+            } else {
+                delete anchor.dataset.cond;
+            }
         });
+
         if (isKick) {
             pop.querySelector('.pop-note').addEventListener('change', e => {
                 this._engine.setStepNote(trackIdx, stepIdx, parseInt(e.target.value));

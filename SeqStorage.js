@@ -1,3 +1,5 @@
+import { TRIG_CONDITIONS } from './SeqEngine.js';
+
 const PREFIX  = 'beatviz_seq_slot_';
 const VERSION = 1;
 
@@ -44,13 +46,12 @@ export class SeqStorage {
         data.swing = Math.max(0,   Math.min(75,  data.swing ?? 0));
         if (!Array.isArray(data.tracks) || data.tracks.length !== 4) return null;
         for (const track of data.tracks) {
-            track.length = Math.max(1, Math.min(64, track.length ?? 16));
             if (!Array.isArray(track.steps)) return null;
             for (const step of track.steps) {
-                step.active      = !!step.active;
-                step.velocity    = Math.max(1,  Math.min(127, step.velocity    ?? 100));
-                step.probability = Math.max(0,  Math.min(100, step.probability ?? 100));
-                step.midiNote    = Math.max(0,  Math.min(127, step.midiNote    ?? 48));
+                step.active    = !!step.active;
+                step.velocity  = Math.max(1, Math.min(127, step.velocity ?? 100));
+                step.condition = TRIG_CONDITIONS.includes(step.condition) ? step.condition : 'always';
+                step.midiNote  = Math.max(0, Math.min(127, step.midiNote ?? 48));
             }
         }
         return data;
