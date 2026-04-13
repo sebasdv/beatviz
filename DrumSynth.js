@@ -3,6 +3,7 @@ export class DrumSynth {
         this.ctx = null;
         this.openHihatNode = null; // track for choke
         this.kickDecay = 0.8;
+        this.kickNode = null; // active kick for legato choke
     }
 
     _ctx() {
@@ -17,6 +18,16 @@ export class DrumSynth {
         const ctx = this._ctx();
         const now = ctx.currentTime;
         const decay = this.kickDecay;
+
+        // legato choke: cortar kick anterior en 2ms
+        if (this.kickNode) {
+            try {
+                this.kickNode.gain.cancelScheduledValues(now);
+                this.kickNode.gain.setValueAtTime(this.kickNode.gain.value, now);
+                this.kickNode.gain.exponentialRampToValueAtTime(0.001, now + 0.002);
+            } catch (_) {}
+            this.kickNode = null;
+        }
 
         const targetHz = Math.max(
             midiNote !== null ? 440 * Math.pow(2, (midiNote - 69) / 12) : 30,
@@ -38,6 +49,8 @@ export class DrumSynth {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + decay + 0.05);
+
+        this.kickNode = gain;
 
         // attack click for definition
         const click = ctx.createOscillator();
