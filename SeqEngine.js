@@ -151,22 +151,23 @@ export class SeqEngine {
     }
 
     _scheduleStep(time) {
+        const delayMs = Math.max(0, (time - this._ctx.currentTime) * 1000);
+
         for (let t = 0; t < 4; t++) {
             const track = this.pattern.tracks[t];
             const si    = this._trackStep[t];
             const step  = track.steps[si];
 
-            if (!step.active) continue;
-            if (Math.random() * 100 > step.probability) continue;
-
-            this._fireSoundAt(t, step.velocity, step.midiNote, time);
-
-            // Notify UI for playhead — delayed to match audio
-            const delayMs = Math.max(0, (time - this._ctx.currentTime) * 1000);
+            // Playhead always advances, regardless of active/probability
             const tCopy = t, sCopy = si;
             setTimeout(() => {
                 this._onStepFire?.(tCopy, sCopy);
             }, delayMs);
+
+            if (!step.active) continue;
+            if (Math.random() * 100 > step.probability) continue;
+
+            this._fireSoundAt(t, step.velocity, step.midiNote, time);
         }
     }
 
