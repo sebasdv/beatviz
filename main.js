@@ -12,9 +12,9 @@ let visualizer;
 let ccMapper;
 let drumSynth;
 
-// instrumento → { canal MIDI (0-indexed), nota por defecto }
+// instrumento → { canal MIDI (0-indexed), nota por defecto, modo bajo monofonico }
 const INSTRUMENTS = {
-    kick:        { defaultNote: 48, channel: 0 },
+    kick:        { defaultNote: 48, channel: 0, mono: false },
     snare:       { defaultNote: 49, channel: 0 },
     closedHihat: { defaultNote: 50, channel: 0 },
     openHihat:   { defaultNote: 51, channel: 0 },
@@ -39,8 +39,9 @@ async function init() {
     setupGUI();
 
     midiManager.on('noteOn', ({ note, velocity, channel }) => {
-        if (channel === INSTRUMENTS.kick.channel) {
-            drumSynth.kick(velocity, note);
+        const k = INSTRUMENTS.kick;
+        if (channel === k.channel && (k.mono || note === k.defaultNote)) {
+            drumSynth.kick(velocity, k.mono ? note : null);
             visualizer.triggerNote(48, velocity);
             return;
         }
@@ -131,16 +132,26 @@ function setupGUI() {
     addMappable(folderPhysics, physicsParams, 'decaySpeed',   0.5, 8,   'Color Decay',   v => visualizer.setPhysics({ decaySpeed: v }));
     addMappable(folderPhysics, physicsParams, 'impulseForce', 1,   40,  'Impulse Force', v => visualizer.setPhysics({ impulseForce: v }));
 
-    const kick808Params = { decay: 0.8 };
+    const kick808Params = { decay: 0.8, mono: false };
     const folder808 = gui.addFolder('808 Kick');
     folder808.add(kick808Params, 'decay', 0.2, 2.5).name('Decay (s)').onChange(v => { drumSynth.kickDecay = v; });
+    folder808.add(kick808Params, 'mono').name('Mono Bass').onChange(v => { INSTRUMENTS.kick.mono = v; });
 
-    const midiChParams = { kick: 1, snare: 1, closedHH: 1, openHH: 1 };
-    const folderMidi = gui.addFolder('MIDI Channels');
-    folderMidi.add(midiChParams, 'kick',     1, 16, 1).name('Kick').onChange(v    => { INSTRUMENTS.kick.channel        = v - 1; });
-    folderMidi.add(midiChParams, 'snare',    1, 16, 1).name('Snare').onChange(v   => { INSTRUMENTS.snare.channel       = v - 1; });
-    folderMidi.add(midiChParams, 'closedHH', 1, 16, 1).name('Closed HH').onChange(v => { INSTRUMENTS.closedHihat.channel = v - 1; });
-    folderMidi.add(midiChParams, 'openHH',   1, 16, 1).name('Open HH').onChange(v => { INSTRUMENTS.openHihat.channel   = v - 1; });
+    const midiChParams = {
+        kickCh: 1,    kickNote: 48,
+        snareCh: 1,   snareNote: 49,
+        closedCh: 1,  closedNote: 50,
+        openCh: 1,    openNote: 51,
+    };
+    const folderMidi = gui.addFolder('MIDI Routing');
+    folderMidi.add(midiChParams, 'kickCh',    1, 16, 1).name('Kick Ch').onChange(v   => { INSTRUMENTS.kick.channel        = v - 1; });
+    folderMidi.add(midiChParams, 'kickNote',  0, 127, 1).name('Kick Note').onChange(v => { INSTRUMENTS.kick.defaultNote    = v; });
+    folderMidi.add(midiChParams, 'snareCh',   1, 16, 1).name('Snare Ch').onChange(v  => { INSTRUMENTS.snare.channel       = v - 1; });
+    folderMidi.add(midiChParams, 'snareNote', 0, 127, 1).name('Snare Note').onChange(v => { INSTRUMENTS.snare.defaultNote  = v; });
+    folderMidi.add(midiChParams, 'closedCh',  1, 16, 1).name('Closed HH Ch').onChange(v => { INSTRUMENTS.closedHihat.channel   = v - 1; });
+    folderMidi.add(midiChParams, 'closedNote',0, 127, 1).name('Closed HH Note').onChange(v => { INSTRUMENTS.closedHihat.defaultNote = v; });
+    folderMidi.add(midiChParams, 'openCh',    1, 16, 1).name('Open HH Ch').onChange(v => { INSTRUMENTS.openHihat.channel   = v - 1; });
+    folderMidi.add(midiChParams, 'openNote',  0, 127, 1).name('Open HH Note').onChange(v => { INSTRUMENTS.openHihat.defaultNote   = v; });
 }
 
 // Keyboard → MIDI note mapping (2x2 grid, notes 48-51 = C3 to D#3)
