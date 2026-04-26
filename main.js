@@ -263,21 +263,48 @@ function setupGUI() {
     // Col 4: Open HH / Rimshot / Shaker / Conga
     const folderMacros = gui.addFolder('Macros');
 
-    function addMacro(key, label, handlers) {
-        const macroParams = { [key]: 1.0 };
-        const ctrl = folderMacros.add(macroParams, key, 0, 1).name(label);
+    function addMacro(folder, key, label, min, max, handlers, defaultVal) {
+        const macroParams = { [key]: defaultVal !== undefined ? defaultVal : min + (max - min) * 0.5 };
+        const ctrl = folder.add(macroParams, key, min, max).name(label);
         ctrl.onChange(v => { for (const h of handlers) h(v); });
-        const allHandlers = [...handlers, v => { macroParams[key] = v; ctrl.updateDisplay(); }];
-        ccMapper.registerMacro(key, allHandlers);
+        // CC input arrives as 0–1; map to [min, max] then call handlers + update display
+        const normalizedCC = v => {
+            const mapped = min + v * (max - min);
+            macroParams[key] = mapped;
+            ctrl.updateDisplay();
+            for (const h of handlers) h(mapped);
+        };
+        ccMapper.registerMacro(key, [normalizedCC]);
         const learnParams = { learn: () => {} };
-        const learnBtn = folderMacros.add(learnParams, 'learn').name(learnLabel(key));
+        const learnBtn = folder.add(learnParams, 'learn').name(learnLabel(key));
         learnParams.learn = () => startLearn(key, learnBtn);
     }
 
-    addMacro('macro_vol1', 'Vol Col 1', [kickVolH, tomHighVolH, clapVolH, tambourineVolH]);
-    addMacro('macro_vol2', 'Vol Col 2', [snareVolH, tomMidVolH, cowbellVolH, crashVolH]);
-    addMacro('macro_vol3', 'Vol Col 3', [closedVolH, tomLowVolH, claveVolH, rideVolH]);
-    addMacro('macro_vol4', 'Vol Col 4', [openVolH, rimshotVolH, shakerVolH, congaVolH]);
+    addMacro(folderMacros, 'macro_vol1', 'Vol Col 1', 0, 1, [kickVolH, tomHighVolH, clapVolH, tambourineVolH], 1.0);
+    addMacro(folderMacros, 'macro_vol2', 'Vol Col 2', 0, 1, [snareVolH, tomMidVolH, cowbellVolH, crashVolH], 1.0);
+    addMacro(folderMacros, 'macro_vol3', 'Vol Col 3', 0, 1, [closedVolH, tomLowVolH, claveVolH, rideVolH], 1.0);
+    addMacro(folderMacros, 'macro_vol4', 'Vol Col 4', 0, 1, [openVolH, rimshotVolH, shakerVolH, congaVolH], 1.0);
+
+    // ── FX Macros ─────────────────────────────────────────────────────────────
+    const folderDelay = folderMacros.addFolder('Delay');
+    addMacro(folderDelay,  'macro_dly_time',  'DLY Time',   0.05, 2.0,  [v => drumSynth.setDelayTime(v)],   0.375);
+    addMacro(folderDelay,  'macro_dly_fdbk',  'DLY Fdbk',   0,    0.95, [v => drumSynth.setDelayFeedback(v)],0.3);
+    addMacro(folderDelay,  'macro_dly_wet',   'DLY Wet',    0,    1,    [v => drumSynth.setDelayWet(v)],    0.5);
+    addMacro(folderDelay,  'macro_dly_sndA',  'DLY Send A', 0,    1,    [v => drumSynth.setSendA(v)],       0.0);
+    addMacro(folderDelay,  'macro_dly_sndB',  'DLY Send B', 0,    1,    [v => drumSynth.setSendB(v)],       0.0);
+
+    const folderReverb = folderMacros.addFolder('Reverb');
+    addMacro(folderReverb, 'macro_rvb_size',  'RVB Size',   0.1,  5.0,  [v => drumSynth.setReverbSize(v)],  2.0);
+    addMacro(folderReverb, 'macro_rvb_decay', 'RVB Decay',  0.5,  8.0,  [v => drumSynth.setReverbDecay(v)], 3.0);
+    addMacro(folderReverb, 'macro_rvb_wet',   'RVB Wet',    0,    1,    [v => drumSynth.setReverbWet(v)],   0.5);
+    addMacro(folderReverb, 'macro_rvb_sndC',  'RVB Send C', 0,    1,    [v => drumSynth.setSendC(v)],       0.0);
+    addMacro(folderReverb, 'macro_rvb_sndD',  'RVB Send D', 0,    1,    [v => drumSynth.setSendD(v)],       0.0);
+
+    const folderDrive = folderMacros.addFolder('Drive');
+    addMacro(folderDrive,  'macro_drv_amt',   'DRV Amount', 0,    1,    [v => drumSynth.setDriveAmount(v)],  0.0);
+    addMacro(folderDrive,  'macro_drv_tone',  'DRV Tone',   500,  12000,[v => drumSynth.setDriveTone(v)],   5000);
+    addMacro(folderDrive,  'macro_drv_sndA',  'DRV Send A', 0,    1,    [v => drumSynth.setSendA(v)],       0.0);
+    addMacro(folderDrive,  'macro_drv_sndB',  'DRV Send B', 0,    1,    [v => drumSynth.setSendB(v)],       0.0);
 
     const midiChParams = {
         kickCh: 1,         kickNote: 48,
