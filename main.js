@@ -331,6 +331,14 @@ function setupGUI() {
     folderMidi.add(midiChParams, 'congaCh',         1,16,1).name('Conga Ch').onChange(v       => { INSTRUMENTS.conga.channel       = v-1; });
     folderMidi.add(midiChParams, 'congaNote',       0,127,1).name('Conga Note').onChange(v    => { INSTRUMENTS.conga.defaultNote   = v; });
 
+    const clearParams = { clearAll: () => {
+        ccMapper.assignments = {};
+        ccMapper._save();
+        // reload to reset all learn button labels
+        location.reload();
+    }};
+    gui.add(clearParams, 'clearAll').name('Clear All CC');
+
     for (const folder of gui.folders) folder.close();
 }
 
