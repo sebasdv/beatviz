@@ -54,17 +54,13 @@ export class CubeGrid {
         this.instancePadColor = new THREE.InstancedBufferAttribute(this.padColorData, 3);
         geometry.setAttribute('aPadColor', this.instancePadColor);
 
-        this.volData = new Float32Array(16).fill(1.0);
-        this.instanceVol = new THREE.InstancedBufferAttribute(this.volData, 1);
-        geometry.setAttribute('aVol', this.instanceVol);
+        this.volLevels = new Float32Array(16).fill(1.0);
 
         const aBrightness = attribute('aBrightness', 'float');
         const aPadColor   = attribute('aPadColor',   'vec3');
-        const aVol        = attribute('aVol',        'float');
         const baseColorNode = tslColor(this.uBaseColor);
-        const dimmedBase = baseColorNode.mul(aVol);
         const hdrColor = aPadColor.mul(float(4.0));
-        const colorNode = mix(dimmedBase, hdrColor, aBrightness);
+        const colorNode = mix(baseColorNode, hdrColor, aBrightness);
 
         const material = new THREE.MeshBasicNodeMaterial({
             transparent: true,
@@ -100,12 +96,8 @@ export class CubeGrid {
             this.pads[index].isActive = 1.0;
             this.impulseDirection *= -1.0;
 
-            const c = new THREE.Color().setHSL(hue, 1.0, 0.5);
-            this.padColors[index].copy(c);
-            this.padColorData[index * 3]     = c.r;
-            this.padColorData[index * 3 + 1] = c.g;
-            this.padColorData[index * 3 + 2] = c.b;
-            this.instancePadColor.needsUpdate = true;
+            this.padColors[index].setHSL(hue, 1.0, 0.5);
+            this._applyPadColor(index);
         }
     }
 
@@ -159,11 +151,8 @@ export class CubeGrid {
         if (cc === 24) {
             for (let i = 0; i < 16; i++) {
                 this.padColors[i].setHSL((i / 16 + value) % 1.0, 1.0, 0.5);
-                this.padColorData[i * 3]     = this.padColors[i].r;
-                this.padColorData[i * 3 + 1] = this.padColors[i].g;
-                this.padColorData[i * 3 + 2] = this.padColors[i].b;
+                this._applyPadColor(i);
             }
-            this.instancePadColor.needsUpdate = true;
         }
         if (cc === 25) {
             this.uBaseColor.setHSL(0, 0, value);
@@ -176,9 +165,18 @@ export class CubeGrid {
 
     setCellVol(index, vol) {
         if (index >= 0 && index < 16) {
-            this.volData[index] = vol;
-            this.instanceVol.needsUpdate = true;
+            this.volLevels[index] = vol;
+            this._applyPadColor(index);
         }
+    }
+
+    _applyPadColor(index) {
+        const vol = this.volLevels[index];
+        const c = this.padColors[index];
+        this.padColorData[index * 3]     = c.r * vol;
+        this.padColorData[index * 3 + 1] = c.g * vol;
+        this.padColorData[index * 3 + 2] = c.b * vol;
+        this.instancePadColor.needsUpdate = true;
     }
 
     setPhysics({ springK, damping, decaySpeed, impulseForce }) {
