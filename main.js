@@ -287,7 +287,58 @@ function setupGUI() {
 
     // ── FX Macros ─────────────────────────────────────────────────────────────
     const folderDelay = folderMacros.addFolder('Delay');
-    addMacro(folderDelay,  'macro_dly_time',  'DLY Time',   0.05, 2.0,  [v => drumSynth.setDelayTime(v)],   0.375);
+
+    // BPM sync state
+    const clockState = { bpm: '---', sync: false, division: '1/8' };
+    const DIVISIONS = { '1/1': 1, '1/2': 0.5, '1/4': 0.25, '1/8': 0.125, '1/16': 0.0625 };
+
+    const bpmDisplay = folderDelay.add(clockState, 'bpm').name('BPM').disable();
+    const syncCtrl   = folderDelay.add(clockState, 'sync').name('Sync Clock');
+    const divCtrl    = folderDelay.add(clockState, 'division', Object.keys(DIVISIONS)).name('Division');
+
+    const dlyTimeState = { macro_dly_time: 0.375 };
+    const dlyTimeCtrl  = folderDelay.add(dlyTimeState, 'macro_dly_time', 0.05, 2.0).name('DLY Time');
+
+    function applyClockToDelay(bpm) {
+        if (!clockState.sync || !bpm) return;
+        const beats = DIVISIONS[clockState.division] ?? 0.125;
+        const t = (60 / bpm) * beats;
+        drumSynth.setDelayTime(t);
+        dlyTimeState.macro_dly_time = t;
+        dlyTimeCtrl.updateDisplay();
+    }
+
+    syncCtrl.onChange(v => {
+        if (v && midiManager.bpm) applyClockToDelay(midiManager.bpm);
+    });
+    divCtrl.onChange(() => applyClockToDelay(midiManager.bpm));
+    dlyTimeCtrl.onChange(v => { if (!clockState.sync) drumSynth.setDelayTime(v); });
+
+    // CC learn for DLY Time (manual, same pattern as addMacro)
+    const dlyTimeNormCC = v => {
+        if (clockState.sync) return;
+        const mapped = 0.05 + v * (2.0 - 0.05);
+        dlyTimeState.macro_dly_time = mapped;
+        dlyTimeCtrl.updateDisplay();
+        drumSynth.setDelayTime(mapped);
+    };
+    ccMapper.register('macro_dly_time', dlyTimeNormCC);
+    const dlyLearnParams = { learn: () => {} };
+    const dlyLearnBtn = folderDelay.add(dlyLearnParams, 'learn').name(learnLabel('macro_dly_time'));
+    dlyLearnParams.learn = () => startLearn('macro_dly_time', dlyLearnBtn);
+
+    let clockTimeoutId = null;
+    midiManager.on('clock', ({ bpm }) => {
+        clockState.bpm = bpm.toFixed(1);
+        bpmDisplay.updateDisplay();
+        applyClockToDelay(bpm);
+        clearTimeout(clockTimeoutId);
+        clockTimeoutId = setTimeout(() => {
+            clockState.bpm = '---';
+            bpmDisplay.updateDisplay();
+        }, 500);
+    });
+
     addMacro(folderDelay,  'macro_dly_fdbk',  'DLY Fdbk',   0,    0.95, [v => drumSynth.setDelayFeedback(v)],0.3);
     addMacro(folderDelay,  'macro_dly_wet',   'DLY Wet',    0,    1,    [v => drumSynth.setDelayWet(v)],    0.5);
     addMacro(folderDelay,  'macro_dly_sndA',  'DLY Send A', 0,    1,    [v => drumSynth.setSendA(v)],       0.0);
