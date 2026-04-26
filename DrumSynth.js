@@ -8,6 +8,7 @@ export class DrumSynth {
         this.fxBus        = null;
         this.driveNode    = null;
         this.driveHP      = null;
+        this.driveWet     = null;
         this.delayNode    = null;
         this.delayFeedback= null;
         this.delayWet     = null;
@@ -107,14 +108,17 @@ export class DrumSynth {
         this.fxBus = ctx.createGain();
         this.fxBus.gain.value = 1.0;
 
+        // Drive: WaveShaper + post-tone filter, parallel to clean signal
         this.driveNode = ctx.createWaveShaper();
         this.driveNode.curve = this._makeDistortionCurve(0);
         this.driveNode.oversample = '4x';
-
         this.driveHP = ctx.createBiquadFilter();
         this.driveHP.type = 'highpass';
         this.driveHP.frequency.value = this.driveTone;
+        this.driveWet = ctx.createGain();
+        this.driveWet.gain.value = 0.0;  // silent until Drive Amount > 0
 
+        // Delay: DelayNode + feedback loop + wet gain
         this.delayNode = ctx.createDelay(2.0);
         this.delayNode.delayTime.value = this.delayTime;
         this.delayFeedback = ctx.createGain();
@@ -125,6 +129,7 @@ export class DrumSynth {
         this.delayFeedback.connect(this.delayNode);
         this.delayNode.connect(this.delayWet);
 
+        // Reverb: ConvolverNode + wet gain
         this.reverbNode = ctx.createConvolver();
         this.reverbWet = ctx.createGain();
         this.reverbWet.gain.value = this.reverbWetAmt;
@@ -134,14 +139,19 @@ export class DrumSynth {
         this.fxOut = ctx.createGain();
         this.fxOut.gain.value = 1.0;
 
-        // sendGains → fxBus → drive → driveHP → delay & reverb → fxOut → destination
+        // Signal flow:
+        //   sendGains → fxBus → delayNode (wet) ─→ fxOut → destination
+        //                    └→ reverbNode (wet) ─↗
+        //                    └→ driveNode → driveHP → driveWet ─↗
         for (const sg of this.sendGains) sg.connect(this.fxBus);
+        this.fxBus.connect(this.delayNode);
+        this.fxBus.connect(this.reverbNode);
         this.fxBus.connect(this.driveNode);
         this.driveNode.connect(this.driveHP);
-        this.driveHP.connect(this.delayNode);
-        this.driveHP.connect(this.reverbNode);
+        this.driveHP.connect(this.driveWet);
         this.delayWet.connect(this.fxOut);
         this.reverbWet.connect(this.fxOut);
+        this.driveWet.connect(this.fxOut);
         this.fxOut.connect(ctx.destination);
     }
 
@@ -163,7 +173,7 @@ export class DrumSynth {
         if (this.sendGains[idx]) node.connect(this.sendGains[idx]);
     }
 
-    setDriveAmount(v)   { this.driveAmount = v; if (this.driveNode) this.driveNode.curve = this._makeDistortionCurve(v * 400); }
+    setDriveAmount(v)   { this.driveAmount = v; if (this.driveNode) { this.driveNode.curve = this._makeDistortionCurve(v * 400); this.driveWet.gain.value = v; } }
     setDriveTone(hz)    { this.driveTone = hz; if (this.driveHP) this.driveHP.frequency.value = hz; }
     setDelayTime(s)     { this.delayTime = s; if (this.delayNode) this.delayNode.delayTime.value = s; }
     setDelayFeedback(v) { this.delayFeedbackAmt = v; if (this.delayFeedback) this.delayFeedback.gain.value = v; }
