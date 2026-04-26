@@ -267,7 +267,8 @@ function setupGUI() {
         const macroParams = { [key]: 1.0 };
         const ctrl = folderMacros.add(macroParams, key, 0, 1).name(label);
         ctrl.onChange(v => { for (const h of handlers) h(v); });
-        ccMapper.registerMacro(key, handlers);
+        const allHandlers = [...handlers, v => { macroParams[key] = v; ctrl.updateDisplay(); }];
+        ccMapper.registerMacro(key, allHandlers);
         const learnParams = { learn: () => {} };
         const learnBtn = folderMacros.add(learnParams, 'learn').name(learnLabel(key));
         learnParams.learn = () => startLearn(key, learnBtn);
