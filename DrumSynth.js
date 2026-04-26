@@ -373,11 +373,11 @@ export class DrumSynth {
     }
 
     tomMid(velocity = 1.0, startTime = null) {
-        this._makeTom(this.tomMidVol, this.tomMidTone, this.tomMidSnap, this.tomMidDecay, velocity, startTime, 5);
+        this._makeTom(this.tomMidVol, this.tomMidTone, this.tomMidSnap, this.tomMidDecay, velocity, startTime, 8);
     }
 
     tomLow(velocity = 1.0, startTime = null) {
-        this._makeTom(this.tomLowVol, this.tomLowTone, this.tomLowSnap, this.tomLowDecay, velocity, startTime, 6);
+        this._makeTom(this.tomLowVol, this.tomLowTone, this.tomLowSnap, this.tomLowDecay, velocity, startTime, 12);
     }
 
     _makeTom(vol, tone, snap, decay, velocity, startTime, sendIdx = -1) {
@@ -429,7 +429,7 @@ export class DrumSynth {
         const g1 = ctx.createGain();
         g1.gain.setValueAtTime(velocity * vol * 0.8, now);
         g1.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
-        osc1.connect(g1); g1.connect(ctx.destination); this._connectToSend(g1, 7);
+        osc1.connect(g1); g1.connect(ctx.destination); this._connectToSend(g1, 9);
         osc1.start(now); osc1.stop(now + 0.03);
 
         const osc2 = ctx.createOscillator();
@@ -438,7 +438,7 @@ export class DrumSynth {
         const g2 = ctx.createGain();
         g2.gain.setValueAtTime(velocity * vol * 0.6, now);
         g2.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-        osc2.connect(g2); g2.connect(ctx.destination); this._connectToSend(g2, 7);
+        osc2.connect(g2); g2.connect(ctx.destination); this._connectToSend(g2, 9);
         osc2.start(now); osc2.stop(now + 0.025);
 
         const noise = this._noiseSource(ctx, 0.02);
@@ -448,7 +448,7 @@ export class DrumSynth {
         const ng = ctx.createGain();
         ng.gain.setValueAtTime(velocity * vol * this.rimshotSnap, now);
         ng.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-        noise.connect(hp); hp.connect(ng); ng.connect(ctx.destination); this._connectToSend(ng, 7);
+        noise.connect(hp); hp.connect(ng); ng.connect(ctx.destination); this._connectToSend(ng, 9);
         noise.start(now); noise.stop(now + 0.02);
     }
 
@@ -468,7 +468,7 @@ export class DrumSynth {
             const g = ctx.createGain();
             g.gain.setValueAtTime(velocity * vol * 0.7, t);
             g.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
-            noise.connect(hp); hp.connect(g); g.connect(ctx.destination); this._connectToSend(g, 8);
+            noise.connect(hp); hp.connect(g); g.connect(ctx.destination); this._connectToSend(g, 5);
             noise.start(t); noise.stop(t + 0.025);
         }
 
@@ -480,7 +480,7 @@ export class DrumSynth {
         const tailStart = now + spread * 3;
         tailG.gain.setValueAtTime(velocity * vol * 0.4, tailStart);
         tailG.gain.exponentialRampToValueAtTime(0.001, tailStart + this.clapReverb);
-        tail.connect(tailHp); tailHp.connect(tailG); tailG.connect(ctx.destination); this._connectToSend(tailG, 8);
+        tail.connect(tailHp); tailHp.connect(tailG); tailG.connect(ctx.destination); this._connectToSend(tailG, 5);
         tail.start(tailStart); tail.stop(tailStart + this.clapReverb + 0.01);
     }
 
@@ -510,7 +510,7 @@ export class DrumSynth {
 
         bp.connect(masterGain);
         masterGain.connect(ctx.destination);
-        this._connectToSend(masterGain, 9);
+        this._connectToSend(masterGain, 13);
     }
 
     // ─── Clave ────────────────────────────────────────────────────────────────
@@ -525,14 +525,14 @@ export class DrumSynth {
         const g = ctx.createGain();
         g.gain.setValueAtTime(velocity * vol * 1.0, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + this.claveDecay);
-        osc.connect(g); g.connect(ctx.destination); this._connectToSend(g, 10);
+        osc.connect(g); g.connect(ctx.destination); this._connectToSend(g, 6);
         osc.start(now); osc.stop(now + this.claveDecay + 0.01);
 
         const noise = this._noiseSource(ctx, 0.008);
         const ng = ctx.createGain();
         ng.gain.setValueAtTime(velocity * vol * this.claveTone, now);
         ng.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
-        noise.connect(ng); ng.connect(ctx.destination); this._connectToSend(ng, 10);
+        noise.connect(ng); ng.connect(ctx.destination); this._connectToSend(ng, 6);
         noise.start(now); noise.stop(now + 0.01);
     }
 
@@ -552,7 +552,7 @@ export class DrumSynth {
         g.gain.setValueAtTime(velocity * vol * 0.6, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + this.shakerDecay);
 
-        noise.connect(bp); bp.connect(g); g.connect(ctx.destination); this._connectToSend(g, 11);
+        noise.connect(bp); bp.connect(g); g.connect(ctx.destination); this._connectToSend(g, 10);
         noise.start(now); noise.stop(now + this.shakerDecay + 0.01);
     }
 
@@ -569,7 +569,7 @@ export class DrumSynth {
         const ng = ctx.createGain();
         ng.gain.setValueAtTime(velocity * vol * 0.5, now);
         ng.gain.exponentialRampToValueAtTime(0.001, now + this.tambourineDecay);
-        noise.connect(hp); hp.connect(ng); ng.connect(ctx.destination); this._connectToSend(ng, 12);
+        noise.connect(hp); hp.connect(ng); ng.connect(ctx.destination); this._connectToSend(ng, 14);
         noise.start(now); noise.stop(now + this.tambourineDecay + 0.01);
 
         [-50, 0, 50].forEach(detune => {
@@ -579,7 +579,7 @@ export class DrumSynth {
             const og = ctx.createGain();
             og.gain.setValueAtTime(velocity * vol * this.tambourineJingle * 0.15, now);
             og.gain.exponentialRampToValueAtTime(0.001, now + this.tambourineDecay * 0.6);
-            osc.connect(og); og.connect(ctx.destination); this._connectToSend(og, 12);
+            osc.connect(og); og.connect(ctx.destination); this._connectToSend(og, 14);
             osc.start(now); osc.stop(now + this.tambourineDecay * 0.6 + 0.01);
         });
     }
@@ -612,7 +612,7 @@ export class DrumSynth {
 
         hp.connect(masterGain);
         masterGain.connect(ctx.destination);
-        this._connectToSend(masterGain, 13);
+        this._connectToSend(masterGain, 7);
     }
 
     // ─── Ride ─────────────────────────────────────────────────────────────────
@@ -627,10 +627,10 @@ export class DrumSynth {
         const bellGain = ctx.createGain();
         bellGain.gain.setValueAtTime(velocity * vol * 0.6, now);
         bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        bell.connect(bellGain); bellGain.connect(ctx.destination); this._connectToSend(bellGain, 14);
+        bell.connect(bellGain); bellGain.connect(ctx.destination); this._connectToSend(bellGain, 11);
         bell.start(now); bell.stop(now + 0.15);
 
-        this._makeHihat(ctx, now, velocity * vol * this.rideShimmer, this.rideDecay, 8000, 12000, 14);
+        this._makeHihat(ctx, now, velocity * vol * this.rideShimmer, this.rideDecay, 8000, 12000, 11);
     }
 
     // ─── Conga ────────────────────────────────────────────────────────────────
