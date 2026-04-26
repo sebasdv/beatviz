@@ -329,6 +329,8 @@ function setupGUI() {
     folderMidi.add(midiChParams, 'rideNote',        0,127,1).name('Ride Note').onChange(v     => { INSTRUMENTS.ride.defaultNote    = v; });
     folderMidi.add(midiChParams, 'congaCh',         1,16,1).name('Conga Ch').onChange(v       => { INSTRUMENTS.conga.channel       = v-1; });
     folderMidi.add(midiChParams, 'congaNote',       0,127,1).name('Conga Note').onChange(v    => { INSTRUMENTS.conga.defaultNote   = v; });
+
+    for (const folder of gui.folders) folder.close();
 }
 
 // Keyboard → MIDI note mapping (4x4 grid, notes 48-63)
