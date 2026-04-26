@@ -341,21 +341,27 @@ function setupGUI() {
 
     addMacro(folderDelay,  'macro_dly_fdbk',  'DLY Fdbk',   0,    0.95, [v => drumSynth.setDelayFeedback(v)],0.3);
     addMacro(folderDelay,  'macro_dly_wet',   'DLY Wet',    0,    1,    [v => drumSynth.setDelayWet(v)],    0.5);
-    addMacro(folderDelay,  'macro_dly_sndA',  'DLY Send A', 0,    1,    [v => drumSynth.setSendA(v)],       0.0);
-    addMacro(folderDelay,  'macro_dly_sndB',  'DLY Send B', 0,    1,    [v => drumSynth.setSendB(v)],       0.0);
+    addMacro(folderDelay,  'macro_dly_sndA',  'DLY Send A', 0,    1,    [v => drumSynth.setDelaySend(0, v)], 0.0);
+    addMacro(folderDelay,  'macro_dly_sndB',  'DLY Send B', 0,    1,    [v => drumSynth.setDelaySend(1, v)], 0.0);
+    addMacro(folderDelay,  'macro_dly_sndC',  'DLY Send C', 0,    1,    [v => drumSynth.setDelaySend(2, v)], 0.0);
+    addMacro(folderDelay,  'macro_dly_sndD',  'DLY Send D', 0,    1,    [v => drumSynth.setDelaySend(3, v)], 0.0);
 
     const folderReverb = folderMacros.addFolder('Reverb');
-    addMacro(folderReverb, 'macro_rvb_size',  'RVB Size',   0.1,  5.0,  [v => drumSynth.setReverbSize(v)],  2.0);
-    addMacro(folderReverb, 'macro_rvb_decay', 'RVB Decay',  0.5,  8.0,  [v => drumSynth.setReverbDecay(v)], 3.0);
-    addMacro(folderReverb, 'macro_rvb_wet',   'RVB Wet',    0,    1,    [v => drumSynth.setReverbWet(v)],   0.5);
-    addMacro(folderReverb, 'macro_rvb_sndC',  'RVB Send C', 0,    1,    [v => drumSynth.setSendC(v)],       0.0);
-    addMacro(folderReverb, 'macro_rvb_sndD',  'RVB Send D', 0,    1,    [v => drumSynth.setSendD(v)],       0.0);
+    addMacro(folderReverb, 'macro_rvb_size',  'RVB Size',   0.1,  5.0,  [v => drumSynth.setReverbSize(v)],   2.0);
+    addMacro(folderReverb, 'macro_rvb_decay', 'RVB Decay',  0.5,  8.0,  [v => drumSynth.setReverbDecay(v)],  3.0);
+    addMacro(folderReverb, 'macro_rvb_wet',   'RVB Wet',    0,    1,    [v => drumSynth.setReverbWet(v)],    0.5);
+    addMacro(folderReverb, 'macro_rvb_sndA',  'RVB Send A', 0,    1,    [v => drumSynth.setReverbSend(0, v)],0.0);
+    addMacro(folderReverb, 'macro_rvb_sndB',  'RVB Send B', 0,    1,    [v => drumSynth.setReverbSend(1, v)],0.0);
+    addMacro(folderReverb, 'macro_rvb_sndC',  'RVB Send C', 0,    1,    [v => drumSynth.setReverbSend(2, v)],0.0);
+    addMacro(folderReverb, 'macro_rvb_sndD',  'RVB Send D', 0,    1,    [v => drumSynth.setReverbSend(3, v)],0.0);
 
     const folderDrive = folderMacros.addFolder('Drive');
     addMacro(folderDrive,  'macro_drv_amt',   'DRV Amount', 0,    1,    [v => drumSynth.setDriveAmount(v)],  0.0);
     addMacro(folderDrive,  'macro_drv_tone',  'DRV Tone',   500,  12000,[v => drumSynth.setDriveTone(v)],   5000);
-    addMacro(folderDrive,  'macro_drv_sndA',  'DRV Send A', 0,    1,    [v => drumSynth.setSendA(v)],       0.0);
-    addMacro(folderDrive,  'macro_drv_sndB',  'DRV Send B', 0,    1,    [v => drumSynth.setSendB(v)],       0.0);
+    addMacro(folderDrive,  'macro_drv_sndA',  'DRV Send A', 0,    1,    [v => drumSynth.setDriveSend(0, v)], 0.0);
+    addMacro(folderDrive,  'macro_drv_sndB',  'DRV Send B', 0,    1,    [v => drumSynth.setDriveSend(1, v)], 0.0);
+    addMacro(folderDrive,  'macro_drv_sndC',  'DRV Send C', 0,    1,    [v => drumSynth.setDriveSend(2, v)], 0.0);
+    addMacro(folderDrive,  'macro_drv_sndD',  'DRV Send D', 0,    1,    [v => drumSynth.setDriveSend(3, v)], 0.0);
 
     const midiChParams = {
         kickCh: 1,         kickNote: 48,

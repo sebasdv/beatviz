@@ -4,18 +4,20 @@ export class DrumSynth {
         this.openHihatNode = null;
         this.kickNode = null;
 
-        // FX Bus nodes (initialized in _initFX after AudioContext is created)
-        this.fxBus        = null;
-        this.driveNode    = null;
-        this.driveHP      = null;
-        this.driveWet     = null;
-        this.delayNode    = null;
-        this.delayFeedback= null;
-        this.delayWet     = null;
-        this.reverbNode   = null;
-        this.reverbWet    = null;
-        this.fxOut        = null;
-        this.sendGains    = [];
+        // FX nodes (initialized in _initFX after AudioContext is created)
+        this.delayNode      = null;
+        this.delayFeedback  = null;
+        this.delayWet       = null;
+        this.reverbNode     = null;
+        this.reverbWet      = null;
+        this.driveNode      = null;
+        this.driveHP        = null;
+        this.driveWet       = null;
+        this.fxOut          = null;
+        // Independent send gain arrays per effect (16 instruments each)
+        this.delaySends     = [];
+        this.reverbSends    = [];
+        this.driveSends     = [];
 
         // FX parameters
         this.driveAmount      = 0.0;
@@ -23,13 +25,13 @@ export class DrumSynth {
         this.delayTime        = 0.375;
         this.delayFeedbackAmt = 0.3;
         this.delayWetAmt      = 0.5;
-        this.sendALevel       = 0.0;
-        this.sendBLevel       = 0.0;
-        this.sendCLevel       = 0.0;
-        this.sendDLevel       = 0.0;
         this.reverbSize       = 2.0;
         this.reverbDecay      = 3.0;
         this.reverbWetAmt     = 0.5;
+        // Send levels per column per effect (A=col1, B=col2, C=col3, D=col4)
+        this.delaySendLevels  = [0, 0, 0, 0];
+        this.reverbSendLevels = [0, 0, 0, 0];
+        this.driveSendLevels  = [0, 0, 0, 0];
 
         // Kick
         this.kickVol    = 1.0;
@@ -98,17 +100,48 @@ export class DrumSynth {
 
     _initFX() {
         const ctx = this.ctx;
+        const makeSends = (target) => {
+            const gains = Array.from({ length: 16 }, () => {
+                const g = ctx.createGain();
+                g.gain.value = 0;
+                g.connect(target);
+                return g;
+            });
+            return gains;
+        };
 
-        this.sendGains = Array.from({ length: 16 }, () => {
-            const g = ctx.createGain();
-            g.gain.value = 0;
-            return g;
-        });
+        this.fxOut = ctx.createGain();
+        this.fxOut.gain.value = 1.0;
+        this.fxOut.connect(ctx.destination);
 
-        this.fxBus = ctx.createGain();
-        this.fxBus.gain.value = 1.0;
+        // ── Delay ────────────────────────────────────────────────────────────
+        const delayBus = ctx.createGain();
+        this.delayNode = ctx.createDelay(2.0);
+        this.delayNode.delayTime.value = this.delayTime;
+        this.delayFeedback = ctx.createGain();
+        this.delayFeedback.gain.value = this.delayFeedbackAmt;
+        this.delayWet = ctx.createGain();
+        this.delayWet.gain.value = this.delayWetAmt;
+        delayBus.connect(this.delayNode);
+        this.delayNode.connect(this.delayFeedback);
+        this.delayFeedback.connect(this.delayNode);
+        this.delayNode.connect(this.delayWet);
+        this.delayWet.connect(this.fxOut);
+        this.delaySends = makeSends(delayBus);
 
-        // Drive: WaveShaper + post-tone filter, parallel to clean signal
+        // ── Reverb ───────────────────────────────────────────────────────────
+        const reverbBus = ctx.createGain();
+        this.reverbNode = ctx.createConvolver();
+        this.reverbWet = ctx.createGain();
+        this.reverbWet.gain.value = this.reverbWetAmt;
+        reverbBus.connect(this.reverbNode);
+        this.reverbNode.connect(this.reverbWet);
+        this.reverbWet.connect(this.fxOut);
+        this._generateIR(this.reverbSize, this.reverbDecay);
+        this.reverbSends = makeSends(reverbBus);
+
+        // ── Drive ────────────────────────────────────────────────────────────
+        const driveBus = ctx.createGain();
         this.driveNode = ctx.createWaveShaper();
         this.driveNode.curve = this._makeDistortionCurve(0);
         this.driveNode.oversample = '4x';
@@ -116,43 +149,12 @@ export class DrumSynth {
         this.driveHP.type = 'highpass';
         this.driveHP.frequency.value = this.driveTone;
         this.driveWet = ctx.createGain();
-        this.driveWet.gain.value = 0.0;  // silent until Drive Amount > 0
-
-        // Delay: DelayNode + feedback loop + wet gain
-        this.delayNode = ctx.createDelay(2.0);
-        this.delayNode.delayTime.value = this.delayTime;
-        this.delayFeedback = ctx.createGain();
-        this.delayFeedback.gain.value = this.delayFeedbackAmt;
-        this.delayWet = ctx.createGain();
-        this.delayWet.gain.value = this.delayWetAmt;
-        this.delayNode.connect(this.delayFeedback);
-        this.delayFeedback.connect(this.delayNode);
-        this.delayNode.connect(this.delayWet);
-
-        // Reverb: ConvolverNode + wet gain
-        this.reverbNode = ctx.createConvolver();
-        this.reverbWet = ctx.createGain();
-        this.reverbWet.gain.value = this.reverbWetAmt;
-        this.reverbNode.connect(this.reverbWet);
-        this._generateIR(this.reverbSize, this.reverbDecay);
-
-        this.fxOut = ctx.createGain();
-        this.fxOut.gain.value = 1.0;
-
-        // Signal flow:
-        //   sendGains → fxBus → delayNode (wet) ─→ fxOut → destination
-        //                    └→ reverbNode (wet) ─↗
-        //                    └→ driveNode → driveHP → driveWet ─↗
-        for (const sg of this.sendGains) sg.connect(this.fxBus);
-        this.fxBus.connect(this.delayNode);
-        this.fxBus.connect(this.reverbNode);
-        this.fxBus.connect(this.driveNode);
+        this.driveWet.gain.value = 0.0;
+        driveBus.connect(this.driveNode);
         this.driveNode.connect(this.driveHP);
         this.driveHP.connect(this.driveWet);
-        this.delayWet.connect(this.fxOut);
-        this.reverbWet.connect(this.fxOut);
         this.driveWet.connect(this.fxOut);
-        this.fxOut.connect(ctx.destination);
+        this.driveSends = makeSends(driveBus);
     }
 
     _generateIR(size, decay) {
@@ -170,21 +172,22 @@ export class DrumSynth {
     }
 
     _connectToSend(node, idx) {
-        if (this.sendGains[idx]) node.connect(this.sendGains[idx]);
+        if (this.delaySends[idx])  node.connect(this.delaySends[idx]);
+        if (this.reverbSends[idx]) node.connect(this.reverbSends[idx]);
+        if (this.driveSends[idx])  node.connect(this.driveSends[idx]);
     }
 
-    setDriveAmount(v)   { this.driveAmount = v; if (this.driveNode) { this.driveNode.curve = this._makeDistortionCurve(v * 400); this.driveWet.gain.value = v; } }
-    setDriveTone(hz)    { this.driveTone = hz; if (this.driveHP) this.driveHP.frequency.value = hz; }
-    setDelayTime(s)     { this.delayTime = s; if (this.delayNode) this.delayNode.delayTime.value = s; }
-    setDelayFeedback(v) { this.delayFeedbackAmt = v; if (this.delayFeedback) this.delayFeedback.gain.value = v; }
-    setDelayWet(v)      { this.delayWetAmt = v; if (this.delayWet) this.delayWet.gain.value = v; }
-    setSendA(v)         { this.sendALevel = v; if (this.sendGains.length) [0,1,2,3].forEach(i => this.sendGains[i].gain.value = v); }
-    setSendB(v)         { this.sendBLevel = v; if (this.sendGains.length) [4,5,6,7].forEach(i => this.sendGains[i].gain.value = v); }
-    setSendC(v)         { this.sendCLevel = v; if (this.sendGains.length) [8,9,10,11].forEach(i => this.sendGains[i].gain.value = v); }
-    setSendD(v)         { this.sendDLevel = v; if (this.sendGains.length) [12,13,14,15].forEach(i => this.sendGains[i].gain.value = v); }
-    setReverbSize(s)    { this.reverbSize = s; if (this.reverbNode) this._generateIR(s, this.reverbDecay); }
-    setReverbDecay(d)   { this.reverbDecay = d; if (this.reverbNode) this._generateIR(this.reverbSize, d); }
-    setReverbWet(v)     { this.reverbWetAmt = v; if (this.reverbWet) this.reverbWet.gain.value = v; }
+    setDriveAmount(v)    { this.driveAmount = v; if (this.driveNode) { this.driveNode.curve = this._makeDistortionCurve(v * 400); this.driveWet.gain.value = v; } }
+    setDriveTone(hz)     { this.driveTone = hz; if (this.driveHP) this.driveHP.frequency.value = hz; }
+    setDelayTime(s)      { this.delayTime = s; if (this.delayNode) this.delayNode.delayTime.value = s; }
+    setDelayFeedback(v)  { this.delayFeedbackAmt = v; if (this.delayFeedback) this.delayFeedback.gain.value = v; }
+    setDelayWet(v)       { this.delayWetAmt = v; if (this.delayWet) this.delayWet.gain.value = v; }
+    setDelaySend(col, v) { this.delaySendLevels[col] = v; const base = col * 4; if (this.delaySends.length) for (let i = base; i < base + 4; i++) this.delaySends[i].gain.value = v; }
+    setReverbSend(col, v){ this.reverbSendLevels[col] = v; const base = col * 4; if (this.reverbSends.length) for (let i = base; i < base + 4; i++) this.reverbSends[i].gain.value = v; }
+    setDriveSend(col, v) { this.driveSendLevels[col] = v; const base = col * 4; if (this.driveSends.length) for (let i = base; i < base + 4; i++) this.driveSends[i].gain.value = v; }
+    setReverbSize(s)     { this.reverbSize = s; if (this.reverbNode) this._generateIR(s, this.reverbDecay); }
+    setReverbDecay(d)    { this.reverbDecay = d; if (this.reverbNode) this._generateIR(this.reverbSize, d); }
+    setReverbWet(v)      { this.reverbWetAmt = v; if (this.reverbWet) this.reverbWet.gain.value = v; }
 
     // ─── Kick 808 ────────────────────────────────────────────────────────────
     kick(velocity = 1.0, midiNote = null, startTime = null) {
