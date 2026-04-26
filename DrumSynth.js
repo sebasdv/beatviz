@@ -1,9 +1,32 @@
 export class DrumSynth {
     constructor() {
         this.ctx = null;
-        this.openHihatNode = null; // track for choke
-        this.kickDecay = 0.8;
-        this.kickNode = null; // active kick for legato choke
+        this.openHihatNode = null;
+        this.kickNode = null;
+
+        // Kick
+        this.kickVol    = 1.0;
+        this.kickDecay  = 0.8;
+        this.kickTone   = 50;   // targetHz when no MIDI note
+        this.kickClick  = 0.6;  // click attack level
+
+        // Snare
+        this.snareVol   = 1.0;
+        this.snareBody  = 200;  // body oscillator start Hz
+        this.snareSnap  = 1500; // noise highpass cutoff Hz
+        this.snareTone  = 0.8;  // noise level multiplier
+
+        // Closed HH
+        this.closedVol   = 1.0;
+        this.closedDecay = 0.08;
+        this.closedTone  = 7000;  // highpass cutoff Hz
+        this.closedColor = 10000; // bandpass center Hz
+
+        // Open HH
+        this.openVol   = 1.0;
+        this.openDecay = 0.4;
+        this.openTone  = 7000;
+        this.openColor = 10000;
     }
 
     _ctx() {
@@ -18,8 +41,8 @@ export class DrumSynth {
         const ctx = this._ctx();
         const now = startTime ?? ctx.currentTime;
         const decay = this.kickDecay;
+        const vol   = this.kickVol;
 
-        // legato choke: cortar kick anterior en 2ms
         if (this.kickNode) {
             try {
                 this.kickNode.gain.cancelScheduledValues(now);
@@ -30,21 +53,19 @@ export class DrumSynth {
         }
 
         const targetHz = Math.max(
-            midiNote !== null ? 440 * Math.pow(2, (midiNote - 69) / 12) : 30,
+            midiNote !== null ? 440 * Math.pow(2, (midiNote - 69) / 12) : this.kickTone,
             20
         );
-        // startHz proporcional al target — notas bajas arrancan más cerca del destino
         const startHz = targetHz * 2.5;
 
-        // sine body — pure 808 sub
         const osc = ctx.createOscillator();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(startHz, now);
-        osc.frequency.exponentialRampToValueAtTime(targetHz, now + 0.04); // sweep rápido al pitch
-        osc.frequency.setValueAtTime(targetHz, now + 0.04);               // sostener en target
+        osc.frequency.exponentialRampToValueAtTime(targetHz, now + 0.04);
+        osc.frequency.setValueAtTime(targetHz, now + 0.04);
 
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(velocity * 2.0, now);
+        gain.gain.setValueAtTime(velocity * vol * 2.0, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
 
         osc.connect(gain);
@@ -54,14 +75,13 @@ export class DrumSynth {
 
         this.kickNode = gain;
 
-        // attack click for definition
         const click = ctx.createOscillator();
         click.type = 'sine';
         click.frequency.setValueAtTime(1200, now);
         click.frequency.exponentialRampToValueAtTime(80, now + 0.008);
 
         const clickGain = ctx.createGain();
-        clickGain.gain.setValueAtTime(velocity * 0.6, now);
+        clickGain.gain.setValueAtTime(velocity * vol * this.kickClick, now);
         clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
 
         click.connect(clickGain);
@@ -74,25 +94,24 @@ export class DrumSynth {
     snare(velocity = 1.0, startTime = null) {
         const ctx = this._ctx();
         const now = startTime ?? ctx.currentTime;
+        const vol  = this.snareVol;
 
-        // tonal body (oscillator)
         const osc = ctx.createOscillator();
         const oscGain = ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-        oscGain.gain.setValueAtTime(velocity * 0.7, now);
+        osc.frequency.setValueAtTime(this.snareBody, now);
+        osc.frequency.exponentialRampToValueAtTime(this.snareBody * 0.5, now + 0.1);
+        oscGain.gain.setValueAtTime(velocity * vol * 0.7, now);
         oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
-        // noise layer (snare wires)
         const noise = this._noiseSource(ctx, 0.3);
 
         const noiseFilter = ctx.createBiquadFilter();
         noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 1500;
+        noiseFilter.frequency.value = this.snareSnap;
 
         const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(velocity * 0.8, now);
+        noiseGain.gain.setValueAtTime(velocity * vol * this.snareTone, now);
         noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
         osc.connect(oscGain);
@@ -123,10 +142,11 @@ export class DrumSynth {
         const ctx = this._ctx();
         const now = startTime ?? ctx.currentTime;
 
-        // choke previous open hihat
         this._chokeOpenHihat(now);
 
-        const { gainNode, source } = this._makeHihat(ctx, now, velocity, 0.4);
+        const { gainNode, source } = this._makeHihat(
+            ctx, now, velocity * this.openVol, this.openDecay, this.openTone, this.openColor
+        );
         this.openHihatNode = { gainNode, source };
     }
 
@@ -135,15 +155,15 @@ export class DrumSynth {
         const ctx = this._ctx();
         const now = startTime ?? ctx.currentTime;
 
-        // choke open hihat
         this._chokeOpenHihat(now);
 
-        this._makeHihat(ctx, now, velocity, 0.08);
+        this._makeHihat(
+            ctx, now, velocity * this.closedVol, this.closedDecay, this.closedTone, this.closedColor
+        );
     }
 
     // ─── Shared hihat synthesis ──────────────────────────────────────────────
-    _makeHihat(ctx, now, velocity, duration) {
-        // 909 hihat = 6 square oscillators detuned + highpass + bandpass
+    _makeHihat(ctx, now, velocity, duration, hipassHz, bandpassHz) {
         const frequencies = [205.3, 304.4, 369.9, 522.6, 635.5, 1002.4];
 
         const masterGain = ctx.createGain();
@@ -152,11 +172,11 @@ export class DrumSynth {
 
         const hipass = ctx.createBiquadFilter();
         hipass.type = 'highpass';
-        hipass.frequency.value = 7000;
+        hipass.frequency.value = hipassHz;
 
         const bandpass = ctx.createBiquadFilter();
         bandpass.type = 'bandpass';
-        bandpass.frequency.value = 10000;
+        bandpass.frequency.value = bandpassHz;
         bandpass.Q.value = 0.5;
 
         const sources = frequencies.map(freq => {

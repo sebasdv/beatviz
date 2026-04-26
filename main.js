@@ -2,9 +2,6 @@ import { MidiManager } from './MidiManager.js';
 import { Visualizer } from './Visualizer.js';
 import { CCMapper } from './CCMapper.js';
 import { DrumSynth } from './DrumSynth.js';
-import { SeqEngine }  from './SeqEngine.js';
-import { SeqStorage } from './SeqStorage.js';
-import { SeqUI }      from './SeqUI.js';
 import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
 
 const startButton = document.getElementById('start-audio');
@@ -27,11 +24,6 @@ async function init() {
     visualizer = new Visualizer('canvas-container');
     ccMapper = new CCMapper();
     drumSynth = new DrumSynth();
-
-    const seqEngine  = new SeqEngine(drumSynth, visualizer);
-    const seqStorage = new SeqStorage();
-    const seqUI      = new SeqUI(seqEngine, seqStorage);
-    seqUI.init();
 
     midiManager = new MidiManager();
     const midiAccess = await midiManager.init();
@@ -130,10 +122,37 @@ function setupGUI() {
     addMappable(folderPhysics, physicsParams, 'decaySpeed',   0.5, 8,   'Color Decay',   v => visualizer.setPhysics({ decaySpeed: v }));
     addMappable(folderPhysics, physicsParams, 'impulseForce', 1,   40,  'Impulse Force', v => visualizer.setPhysics({ impulseForce: v }));
 
-    const kick808Params = { decay: 0.8, mono: false };
-    const folder808 = gui.addFolder('808 Kick');
-    folder808.add(kick808Params, 'decay', 0.2, 2.5).name('Decay (s)').onChange(v => { drumSynth.kickDecay = v; });
-    folder808.add(kick808Params, 'mono').name('Mono Bass').onChange(v => { INSTRUMENTS.kick.mono = v; });
+    // ── Kick ──────────────────────────────────────────────────────────────────
+    const kickParams = { kickVol: 1.0, kickDecay: 0.8, kickTone: 50, kickClick: 0.6 };
+    const folderKick = gui.addFolder('Kick');
+    addMappable(folderKick, kickParams, 'kickVol',   0, 1,    'Vol',     v => { drumSynth.kickVol   = v; });
+    addMappable(folderKick, kickParams, 'kickDecay', 0.2, 2.5,'Decay',   v => { drumSynth.kickDecay = v; });
+    addMappable(folderKick, kickParams, 'kickTone',  20, 200, 'Tone Hz', v => { drumSynth.kickTone  = v; });
+    addMappable(folderKick, kickParams, 'kickClick', 0, 1,    'Click',   v => { drumSynth.kickClick = v; });
+
+    // ── Snare ─────────────────────────────────────────────────────────────────
+    const snareParams = { snareVol: 1.0, snareBody: 200, snareSnap: 1500, snareTone: 0.8 };
+    const folderSnare = gui.addFolder('Snare');
+    addMappable(folderSnare, snareParams, 'snareVol',  0, 1,     'Vol',     v => { drumSynth.snareVol  = v; });
+    addMappable(folderSnare, snareParams, 'snareBody', 80, 400,  'Body Hz', v => { drumSynth.snareBody = v; });
+    addMappable(folderSnare, snareParams, 'snareSnap', 500, 5000,'Snap Hz', v => { drumSynth.snareSnap = v; });
+    addMappable(folderSnare, snareParams, 'snareTone', 0, 1.5,  'Noise',   v => { drumSynth.snareTone = v; });
+
+    // ── Closed HH ─────────────────────────────────────────────────────────────
+    const closedParams = { closedVol: 1.0, closedDecay: 0.08, closedTone: 7000, closedColor: 10000 };
+    const folderClosed = gui.addFolder('Closed HH');
+    addMappable(folderClosed, closedParams, 'closedVol',   0, 1,      'Vol',      v => { drumSynth.closedVol   = v; });
+    addMappable(folderClosed, closedParams, 'closedDecay', 0.02, 0.3, 'Decay',    v => { drumSynth.closedDecay = v; });
+    addMappable(folderClosed, closedParams, 'closedTone',  2000, 15000,'Tone Hz', v => { drumSynth.closedTone  = v; });
+    addMappable(folderClosed, closedParams, 'closedColor', 5000, 20000,'Color Hz',v => { drumSynth.closedColor = v; });
+
+    // ── Open HH ───────────────────────────────────────────────────────────────
+    const openParams = { openVol: 1.0, openDecay: 0.4, openTone: 7000, openColor: 10000 };
+    const folderOpen = gui.addFolder('Open HH');
+    addMappable(folderOpen, openParams, 'openVol',   0, 1,      'Vol',      v => { drumSynth.openVol   = v; });
+    addMappable(folderOpen, openParams, 'openDecay', 0.1, 1.5,  'Decay',    v => { drumSynth.openDecay = v; });
+    addMappable(folderOpen, openParams, 'openTone',  2000, 15000,'Tone Hz', v => { drumSynth.openTone  = v; });
+    addMappable(folderOpen, openParams, 'openColor', 5000, 20000,'Color Hz',v => { drumSynth.openColor = v; });
 
     const midiChParams = {
         kickCh: 1,    kickNote: 48,
