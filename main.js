@@ -316,17 +316,18 @@ function setupGUI() {
 
     function applyClockToDelay(bpm) {
         if (!clockState.sync || !bpm) return;
-        const beats = DIVISIONS[clockState.division] ?? 0.125;
-        const t = (60 / bpm) * beats;
+        const beats = DIVISIONS[clockState.division];
+        if (beats === undefined) return;
+        const t = Math.max((60 / bpm) * beats, 0.001);
         drumSynth.setDelayTime(t);
-        dlyTimeState.macro_dly_time = t;
+        dlyTimeState.macro_dly_time = Math.min(t, 2.0);
         dlyTimeCtrl.updateDisplay();
     }
 
     syncCtrl.onChange(v => {
         if (v && midiManager.bpm) applyClockToDelay(midiManager.bpm);
     });
-    divCtrl.onChange(() => applyClockToDelay(midiManager.bpm));
+    divCtrl.onChange(v => { clockState.division = v; applyClockToDelay(midiManager.bpm); });
     dlyTimeCtrl.onChange(v => { if (!clockState.sync) drumSynth.setDelayTime(v); });
 
     // CC learn for DLY Time (manual, same pattern as addMacro)
