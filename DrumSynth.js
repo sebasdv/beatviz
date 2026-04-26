@@ -182,9 +182,9 @@ export class DrumSynth {
     setDelayTime(s)      { this.delayTime = s; if (this.delayNode) this.delayNode.delayTime.value = s; }
     setDelayFeedback(v)  { this.delayFeedbackAmt = v; if (this.delayFeedback) this.delayFeedback.gain.value = v; }
     setDelayWet(v)       { this.delayWetAmt = v; if (this.delayWet) this.delayWet.gain.value = v; }
-    setDelaySend(col, v) { this.delaySendLevels[col] = v; const base = col * 4; if (this.delaySends.length) for (let i = base; i < base + 4; i++) this.delaySends[i].gain.value = v; }
-    setReverbSend(col, v){ this.reverbSendLevels[col] = v; const base = col * 4; if (this.reverbSends.length) for (let i = base; i < base + 4; i++) this.reverbSends[i].gain.value = v; }
-    setDriveSend(col, v) { this.driveSendLevels[col] = v; const base = col * 4; if (this.driveSends.length) for (let i = base; i < base + 4; i++) this.driveSends[i].gain.value = v; }
+    setDelaySend(col, v) { this.delaySendLevels[col] = v; if (this.delaySends.length) [col, col+4, col+8, col+12].forEach(i => this.delaySends[i].gain.value = v); }
+    setReverbSend(col, v){ this.reverbSendLevels[col] = v; if (this.reverbSends.length) [col, col+4, col+8, col+12].forEach(i => this.reverbSends[i].gain.value = v); }
+    setDriveSend(col, v) { this.driveSendLevels[col] = v; if (this.driveSends.length) [col, col+4, col+8, col+12].forEach(i => this.driveSends[i].gain.value = v); }
     setReverbSize(s)     { this.reverbSize = s; if (this.reverbNode) this._generateIR(s, this.reverbDecay); }
     setReverbDecay(d)    { this.reverbDecay = d; if (this.reverbNode) this._generateIR(this.reverbSize, d); }
     setReverbWet(v)      { this.reverbWetAmt = v; if (this.reverbWet) this.reverbWet.gain.value = v; }
