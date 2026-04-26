@@ -115,7 +115,6 @@ function setupGUI() {
     };
 
     const folderVisual = gui.addFolder('Visual');
-    folderVisual.open();
     addMappable(folderVisual, visualParams, 'hueOffset',     0, 1, 'Hue Offset',  v => visualizer.updateCC(24, v));
     addMappable(folderVisual, visualParams, 'baseBright',    0, 1, 'Base Bright', v => visualizer.updateCC(25, v));
     addMappable(folderVisual, visualParams, 'opacity',       0, 1, 'Opacity',     v => visualizer.updateCC(26, v));
@@ -263,7 +262,6 @@ function setupGUI() {
     // Col 3: Closed HH / Tom Low / Clave / Ride
     // Col 4: Open HH / Rimshot / Shaker / Conga
     const folderMacros = gui.addFolder('Macros');
-    folderMacros.open();
 
     function addMacro(key, label, handlers) {
         const macroParams = { [key]: 1.0 };
