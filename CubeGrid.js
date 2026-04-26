@@ -54,11 +54,17 @@ export class CubeGrid {
         this.instancePadColor = new THREE.InstancedBufferAttribute(this.padColorData, 3);
         geometry.setAttribute('aPadColor', this.instancePadColor);
 
+        this.volData = new Float32Array(16).fill(1.0);
+        this.instanceVol = new THREE.InstancedBufferAttribute(this.volData, 1);
+        geometry.setAttribute('aVol', this.instanceVol);
+
         const aBrightness = attribute('aBrightness', 'float');
         const aPadColor   = attribute('aPadColor',   'vec3');
+        const aVol        = attribute('aVol',        'float');
         const baseColorNode = tslColor(this.uBaseColor);
+        const dimmedBase = baseColorNode.mul(aVol);
         const hdrColor = aPadColor.mul(float(4.0));
-        const colorNode = mix(baseColorNode, hdrColor, aBrightness);
+        const colorNode = mix(dimmedBase, hdrColor, aBrightness);
 
         const material = new THREE.MeshBasicNodeMaterial({
             transparent: true,
@@ -165,6 +171,13 @@ export class CubeGrid {
         if (cc === 26) {
             this.uOpacity = 0.1 + (value * 0.9);
             this.mesh.material.opacity = this.uOpacity;
+        }
+    }
+
+    setCellVol(index, vol) {
+        if (index >= 0 && index < 16) {
+            this.volData[index] = vol;
+            this.instanceVol.needsUpdate = true;
         }
     }
 

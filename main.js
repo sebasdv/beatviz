@@ -131,7 +131,7 @@ function setupGUI() {
     // ── Kick ──────────────────────────────────────────────────────────────────
     const kickParams = { kickVol: 1.0, kickDecay: 0.8, kickTone: 50, kickClick: 0.6 };
     const folderKick = gui.addFolder('Kick');
-    const kickVolH = addMappable(folderKick, kickParams, 'kickVol',   0, 1,    'Vol',     v => { drumSynth.kickVol   = v; }).normalizedHandler;
+    const kickVolH = addMappable(folderKick, kickParams, 'kickVol',   0, 1,    'Vol',     v => { drumSynth.kickVol   = v; visualizer.setCellVol(0,  v); }).normalizedHandler;
     addMappable(folderKick, kickParams, 'kickDecay', 0.2, 2.5,'Decay',   v => { drumSynth.kickDecay = v; });
     addMappable(folderKick, kickParams, 'kickTone',  20, 200, 'Tone Hz', v => { drumSynth.kickTone  = v; });
     addMappable(folderKick, kickParams, 'kickClick', 0, 1,    'Click',   v => { drumSynth.kickClick = v; });
@@ -139,7 +139,7 @@ function setupGUI() {
     // ── Snare ─────────────────────────────────────────────────────────────────
     const snareParams = { snareVol: 1.0, snareBody: 200, snareSnap: 1500, snareTone: 0.8 };
     const folderSnare = gui.addFolder('Snare');
-    const snareVolH = addMappable(folderSnare, snareParams, 'snareVol',  0, 1,     'Vol',     v => { drumSynth.snareVol  = v; }).normalizedHandler;
+    const snareVolH = addMappable(folderSnare, snareParams, 'snareVol',  0, 1,     'Vol',     v => { drumSynth.snareVol  = v; visualizer.setCellVol(1,  v); }).normalizedHandler;
     addMappable(folderSnare, snareParams, 'snareBody', 80, 400,  'Body Hz', v => { drumSynth.snareBody = v; });
     addMappable(folderSnare, snareParams, 'snareSnap', 500, 5000,'Snap Hz', v => { drumSynth.snareSnap = v; });
     addMappable(folderSnare, snareParams, 'snareTone', 0, 1.5,  'Noise',   v => { drumSynth.snareTone = v; });
@@ -147,7 +147,7 @@ function setupGUI() {
     // ── Closed HH ─────────────────────────────────────────────────────────────
     const closedParams = { closedVol: 1.0, closedDecay: 0.08, closedTone: 7000, closedColor: 10000 };
     const folderClosed = gui.addFolder('Closed HH');
-    const closedVolH = addMappable(folderClosed, closedParams, 'closedVol',   0, 1,      'Vol',      v => { drumSynth.closedVol   = v; }).normalizedHandler;
+    const closedVolH = addMappable(folderClosed, closedParams, 'closedVol',   0, 1,      'Vol',      v => { drumSynth.closedVol   = v; visualizer.setCellVol(2,  v); }).normalizedHandler;
     addMappable(folderClosed, closedParams, 'closedDecay', 0.02, 0.3, 'Decay',    v => { drumSynth.closedDecay = v; });
     addMappable(folderClosed, closedParams, 'closedTone',  2000, 15000,'Tone Hz', v => { drumSynth.closedTone  = v; });
     addMappable(folderClosed, closedParams, 'closedColor', 5000, 20000,'Color Hz',v => { drumSynth.closedColor = v; });
@@ -155,7 +155,7 @@ function setupGUI() {
     // ── Open HH ───────────────────────────────────────────────────────────────
     const openParams = { openVol: 1.0, openDecay: 0.4, openTone: 7000, openColor: 10000 };
     const folderOpen = gui.addFolder('Open HH');
-    const openVolH = addMappable(folderOpen, openParams, 'openVol',   0, 1,      'Vol',      v => { drumSynth.openVol   = v; }).normalizedHandler;
+    const openVolH = addMappable(folderOpen, openParams, 'openVol',   0, 1,      'Vol',      v => { drumSynth.openVol   = v; visualizer.setCellVol(3,  v); }).normalizedHandler;
     addMappable(folderOpen, openParams, 'openDecay', 0.1, 1.5,  'Decay',    v => { drumSynth.openDecay = v; });
     addMappable(folderOpen, openParams, 'openTone',  2000, 15000,'Tone Hz', v => { drumSynth.openTone  = v; });
     addMappable(folderOpen, openParams, 'openColor', 5000, 20000,'Color Hz',v => { drumSynth.openColor = v; });
@@ -163,7 +163,7 @@ function setupGUI() {
     // ── Tom High ──────────────────────────────────────────────────────────────
     const tomHighParams = { tomHighVol:1.0, tomHighTone:300, tomHighSnap:0.3, tomHighDecay:0.18 };
     const folderTomHigh = gui.addFolder('Tom High');
-    const tomHighVolH = addMappable(folderTomHigh, tomHighParams, 'tomHighVol',   0, 1,     'Vol',     v => { drumSynth.tomHighVol   = v; }).normalizedHandler;
+    const tomHighVolH = addMappable(folderTomHigh, tomHighParams, 'tomHighVol',   0, 1,     'Vol',     v => { drumSynth.tomHighVol   = v; visualizer.setCellVol(4,  v); }).normalizedHandler;
     addMappable(folderTomHigh, tomHighParams, 'tomHighTone', 100, 600,  'Tone Hz', v => { drumSynth.tomHighTone  = v; });
     addMappable(folderTomHigh, tomHighParams, 'tomHighSnap',  0, 1,     'Snap',    v => { drumSynth.tomHighSnap  = v; });
     addMappable(folderTomHigh, tomHighParams, 'tomHighDecay', 0.05, 0.6,'Decay',   v => { drumSynth.tomHighDecay = v; });
@@ -171,7 +171,7 @@ function setupGUI() {
     // ── Tom Mid ───────────────────────────────────────────────────────────────
     const tomMidParams = { tomMidVol:1.0, tomMidTone:180, tomMidSnap:0.3, tomMidDecay:0.25 };
     const folderTomMid = gui.addFolder('Tom Mid');
-    const tomMidVolH = addMappable(folderTomMid, tomMidParams, 'tomMidVol',   0, 1,     'Vol',     v => { drumSynth.tomMidVol   = v; }).normalizedHandler;
+    const tomMidVolH = addMappable(folderTomMid, tomMidParams, 'tomMidVol',   0, 1,     'Vol',     v => { drumSynth.tomMidVol   = v; visualizer.setCellVol(5,  v); }).normalizedHandler;
     addMappable(folderTomMid, tomMidParams, 'tomMidTone',  60, 400,  'Tone Hz', v => { drumSynth.tomMidTone  = v; });
     addMappable(folderTomMid, tomMidParams, 'tomMidSnap',  0, 1,     'Snap',    v => { drumSynth.tomMidSnap  = v; });
     addMappable(folderTomMid, tomMidParams, 'tomMidDecay', 0.05, 0.8,'Decay',   v => { drumSynth.tomMidDecay = v; });
@@ -179,7 +179,7 @@ function setupGUI() {
     // ── Tom Low ───────────────────────────────────────────────────────────────
     const tomLowParams = { tomLowVol:1.0, tomLowTone:90, tomLowSnap:0.25, tomLowDecay:0.35 };
     const folderTomLow = gui.addFolder('Tom Low');
-    const tomLowVolH = addMappable(folderTomLow, tomLowParams, 'tomLowVol',   0, 1,     'Vol',     v => { drumSynth.tomLowVol   = v; }).normalizedHandler;
+    const tomLowVolH = addMappable(folderTomLow, tomLowParams, 'tomLowVol',   0, 1,     'Vol',     v => { drumSynth.tomLowVol   = v; visualizer.setCellVol(6,  v); }).normalizedHandler;
     addMappable(folderTomLow, tomLowParams, 'tomLowTone',  40, 250,  'Tone Hz', v => { drumSynth.tomLowTone  = v; });
     addMappable(folderTomLow, tomLowParams, 'tomLowSnap',  0, 1,     'Snap',    v => { drumSynth.tomLowSnap  = v; });
     addMappable(folderTomLow, tomLowParams, 'tomLowDecay', 0.1, 1.0, 'Decay',   v => { drumSynth.tomLowDecay = v; });
@@ -187,7 +187,7 @@ function setupGUI() {
     // ── Rimshot ───────────────────────────────────────────────────────────────
     const rimshotParams = { rimshotVol:1.0, rimshotBody:400, rimshotSnap:1.2, rimshotTone:3000 };
     const folderRimshot = gui.addFolder('Rimshot');
-    const rimshotVolH = addMappable(folderRimshot, rimshotParams, 'rimshotVol',  0, 1,     'Vol',     v => { drumSynth.rimshotVol  = v; }).normalizedHandler;
+    const rimshotVolH = addMappable(folderRimshot, rimshotParams, 'rimshotVol',  0, 1,     'Vol',     v => { drumSynth.rimshotVol  = v; visualizer.setCellVol(7,  v); }).normalizedHandler;
     addMappable(folderRimshot, rimshotParams, 'rimshotBody', 200, 800, 'Body Hz', v => { drumSynth.rimshotBody = v; });
     addMappable(folderRimshot, rimshotParams, 'rimshotSnap', 0, 2,     'Snap',    v => { drumSynth.rimshotSnap = v; });
     addMappable(folderRimshot, rimshotParams, 'rimshotTone', 1000,8000,'Tone Hz', v => { drumSynth.rimshotTone = v; });
@@ -195,7 +195,7 @@ function setupGUI() {
     // ── Clap ──────────────────────────────────────────────────────────────────
     const clapParams = { clapVol:1.0, clapSpread:12, clapTone:1200, clapReverb:0.18 };
     const folderClap = gui.addFolder('Clap');
-    const clapVolH = addMappable(folderClap, clapParams, 'clapVol',    0, 1,    'Vol',     v => { drumSynth.clapVol    = v; }).normalizedHandler;
+    const clapVolH = addMappable(folderClap, clapParams, 'clapVol',    0, 1,    'Vol',     v => { drumSynth.clapVol    = v; visualizer.setCellVol(8,  v); }).normalizedHandler;
     addMappable(folderClap, clapParams, 'clapSpread', 2, 40,   'Spread ms',v => { drumSynth.clapSpread = v; });
     addMappable(folderClap, clapParams, 'clapTone',   400,4000,'Tone Hz', v => { drumSynth.clapTone   = v; });
     addMappable(folderClap, clapParams, 'clapReverb', 0.05,0.5,'Reverb',  v => { drumSynth.clapReverb = v; });
@@ -203,7 +203,7 @@ function setupGUI() {
     // ── Cowbell ───────────────────────────────────────────────────────────────
     const cowbellParams = { cowbellVol:1.0, cowbellTune:587, cowbellDecay:0.5, cowbellRing:8.0 };
     const folderCowbell = gui.addFolder('Cowbell');
-    const cowbellVolH = addMappable(folderCowbell, cowbellParams, 'cowbellVol',   0, 1,     'Vol',     v => { drumSynth.cowbellVol   = v; }).normalizedHandler;
+    const cowbellVolH = addMappable(folderCowbell, cowbellParams, 'cowbellVol',   0, 1,     'Vol',     v => { drumSynth.cowbellVol   = v; visualizer.setCellVol(9,  v); }).normalizedHandler;
     addMappable(folderCowbell, cowbellParams, 'cowbellTune',  300,1200, 'Tune Hz', v => { drumSynth.cowbellTune  = v; });
     addMappable(folderCowbell, cowbellParams, 'cowbellDecay', 0.1, 2.0, 'Decay',   v => { drumSynth.cowbellDecay = v; });
     addMappable(folderCowbell, cowbellParams, 'cowbellRing',  1, 20,    'Ring',    v => { drumSynth.cowbellRing  = v; });
@@ -211,7 +211,7 @@ function setupGUI() {
     // ── Clave ─────────────────────────────────────────────────────────────────
     const claveParams = { claveVol:1.0, claveFreq:1500, claveDecay:0.06, claveTone:0.2 };
     const folderClave = gui.addFolder('Clave');
-    const claveVolH = addMappable(folderClave, claveParams, 'claveVol',   0, 1,     'Vol',     v => { drumSynth.claveVol   = v; }).normalizedHandler;
+    const claveVolH = addMappable(folderClave, claveParams, 'claveVol',   0, 1,     'Vol',     v => { drumSynth.claveVol   = v; visualizer.setCellVol(10, v); }).normalizedHandler;
     addMappable(folderClave, claveParams, 'claveFreq',  600,3000, 'Freq Hz', v => { drumSynth.claveFreq  = v; });
     addMappable(folderClave, claveParams, 'claveDecay', 0.02,0.2, 'Decay',   v => { drumSynth.claveDecay = v; });
     addMappable(folderClave, claveParams, 'claveTone',  0, 1,     'Click',   v => { drumSynth.claveTone  = v; });
@@ -219,7 +219,7 @@ function setupGUI() {
     // ── Shaker ────────────────────────────────────────────────────────────────
     const shakerParams = { shakerVol:1.0, shakerCut:5000, shakerRes:4.0, shakerDecay:0.08 };
     const folderShaker = gui.addFolder('Shaker');
-    const shakerVolH = addMappable(folderShaker, shakerParams, 'shakerVol',   0, 1,      'Vol',   v => { drumSynth.shakerVol   = v; }).normalizedHandler;
+    const shakerVolH = addMappable(folderShaker, shakerParams, 'shakerVol',   0, 1,      'Vol',   v => { drumSynth.shakerVol   = v; visualizer.setCellVol(11, v); }).normalizedHandler;
     addMappable(folderShaker, shakerParams, 'shakerCut',   1000,12000,'Cut Hz',v => { drumSynth.shakerCut   = v; });
     addMappable(folderShaker, shakerParams, 'shakerRes',   0.5, 15,   'Res',   v => { drumSynth.shakerRes   = v; });
     addMappable(folderShaker, shakerParams, 'shakerDecay', 0.02,0.3,  'Decay', v => { drumSynth.shakerDecay = v; });
@@ -227,7 +227,7 @@ function setupGUI() {
     // ── Tambourine ────────────────────────────────────────────────────────────
     const tambourineParams = { tambourineVol:1.0, tambourineTone:3200, tambourineJingle:0.8, tambourineDecay:0.22 };
     const folderTambourine = gui.addFolder('Tambourine');
-    const tambourineVolH = addMappable(folderTambourine, tambourineParams, 'tambourineVol',    0, 1,     'Vol',    v => { drumSynth.tambourineVol    = v; }).normalizedHandler;
+    const tambourineVolH = addMappable(folderTambourine, tambourineParams, 'tambourineVol',    0, 1,     'Vol',    v => { drumSynth.tambourineVol    = v; visualizer.setCellVol(12, v); }).normalizedHandler;
     addMappable(folderTambourine, tambourineParams, 'tambourineTone',   1000,6000,'Tone Hz',v => { drumSynth.tambourineTone   = v; });
     addMappable(folderTambourine, tambourineParams, 'tambourineJingle', 0, 2,     'Jingle', v => { drumSynth.tambourineJingle = v; });
     addMappable(folderTambourine, tambourineParams, 'tambourineDecay',  0.05,0.5, 'Decay',  v => { drumSynth.tambourineDecay  = v; });
@@ -235,7 +235,7 @@ function setupGUI() {
     // ── Crash ─────────────────────────────────────────────────────────────────
     const crashParams = { crashVol:1.0, crashDecay:1.8, crashTone:5000, crashSpread:40 };
     const folderCrash = gui.addFolder('Crash');
-    const crashVolH = addMappable(folderCrash, crashParams, 'crashVol',    0, 1,      'Vol',    v => { drumSynth.crashVol    = v; }).normalizedHandler;
+    const crashVolH = addMappable(folderCrash, crashParams, 'crashVol',    0, 1,      'Vol',    v => { drumSynth.crashVol    = v; visualizer.setCellVol(13, v); }).normalizedHandler;
     addMappable(folderCrash, crashParams, 'crashDecay',  0.5, 4.0,  'Decay',  v => { drumSynth.crashDecay  = v; });
     addMappable(folderCrash, crashParams, 'crashTone',   2000,12000,'Tone Hz',v => { drumSynth.crashTone   = v; });
     addMappable(folderCrash, crashParams, 'crashSpread', 0, 100,    'Spread', v => { drumSynth.crashSpread = v; });
@@ -243,7 +243,7 @@ function setupGUI() {
     // ── Ride ──────────────────────────────────────────────────────────────────
     const rideParams = { rideVol:1.0, rideDecay:0.9, rideBell:850, rideShimmer:0.6 };
     const folderRide = gui.addFolder('Ride');
-    const rideVolH = addMappable(folderRide, rideParams, 'rideVol',     0, 1,     'Vol',     v => { drumSynth.rideVol     = v; }).normalizedHandler;
+    const rideVolH = addMappable(folderRide, rideParams, 'rideVol',     0, 1,     'Vol',     v => { drumSynth.rideVol     = v; visualizer.setCellVol(14, v); }).normalizedHandler;
     addMappable(folderRide, rideParams, 'rideDecay',   0.2, 3.0, 'Decay',   v => { drumSynth.rideDecay   = v; });
     addMappable(folderRide, rideParams, 'rideBell',    300,2000, 'Bell Hz', v => { drumSynth.rideBell    = v; });
     addMappable(folderRide, rideParams, 'rideShimmer', 0, 1,     'Shimmer', v => { drumSynth.rideShimmer = v; });
@@ -251,7 +251,7 @@ function setupGUI() {
     // ── Conga ─────────────────────────────────────────────────────────────────
     const congaParams = { congaVol:1.0, congaTone:220, congaBody:12.0, congaDecay:0.28 };
     const folderConga = gui.addFolder('Conga');
-    const congaVolH = addMappable(folderConga, congaParams, 'congaVol',   0, 1,     'Vol',     v => { drumSynth.congaVol   = v; }).normalizedHandler;
+    const congaVolH = addMappable(folderConga, congaParams, 'congaVol',   0, 1,     'Vol',     v => { drumSynth.congaVol   = v; visualizer.setCellVol(15, v); }).normalizedHandler;
     addMappable(folderConga, congaParams, 'congaTone',  80, 500,  'Tone Hz', v => { drumSynth.congaTone  = v; });
     addMappable(folderConga, congaParams, 'congaBody',  1, 30,    'Body Q',  v => { drumSynth.congaBody  = v; });
     addMappable(folderConga, congaParams, 'congaDecay', 0.1, 1.0, 'Decay',   v => { drumSynth.congaDecay = v; });

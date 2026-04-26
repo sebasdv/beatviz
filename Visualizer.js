@@ -117,6 +117,10 @@ export class Visualizer {
         }
     }
 
+    setCellVol(index, vol) {
+        if (this.grid) this.grid.setCellVol(index, vol);
+    }
+
     setPhysics(params) {
         if (this.grid) {
             this.grid.setPhysics(params);
