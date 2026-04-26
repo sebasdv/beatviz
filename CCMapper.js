@@ -12,6 +12,12 @@ export class CCMapper {
         this.bindings[name] = handler;
     }
 
+    registerMacro(name, handlers) {
+        this.bindings[name] = (value) => {
+            for (const h of handlers) h(value);
+        };
+    }
+
     learn(name, onAssigned) {
         this.learningParam = name;
         this._learnCallback = onAssigned;
