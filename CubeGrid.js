@@ -5,13 +5,13 @@ export class CubeGrid {
     constructor(scene, renderer) {
         this.scene = scene;
         this.renderer = renderer;
-        this.gridSize = 2;
-        this.cellSize = 2.0;
-        this.gap = 0.5;
+        this.gridSize = 4;
+        this.cellSize = 0.9;
+        this.gap = 0.25;
         this.gridOffset = (this.gridSize * this.cellSize + (this.gridSize - 1) * this.gap) / 2;
 
         this.pads = [];
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 16; i++) {
             this.pads.push({
                 height: 0.2,
                 velocity: 0,
@@ -30,8 +30,8 @@ export class CubeGrid {
         this.uBaseColor = new THREE.Color(0x111111);
         this.uOpacity = 0.9;
 
-        this.padColors = Array.from({ length: 4 }, (_, i) =>
-            new THREE.Color().setHSL(i / 4, 1.0, 0.5)
+        this.padColors = Array.from({ length: 16 }, (_, i) =>
+            new THREE.Color().setHSL(i / 16, 1.0, 0.5)
         );
 
         this.init();
@@ -41,12 +41,12 @@ export class CubeGrid {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         geometry.translate(0, 0.5, 0);
 
-        this.brightnessData = new Float32Array(4).fill(0);
+        this.brightnessData = new Float32Array(16).fill(0);
         this.instanceBrightness = new THREE.InstancedBufferAttribute(this.brightnessData, 1);
         geometry.setAttribute('aBrightness', this.instanceBrightness);
 
-        this.padColorData = new Float32Array(4 * 3);
-        for (let i = 0; i < 4; i++) {
+        this.padColorData = new Float32Array(16 * 3);
+        for (let i = 0; i < 16; i++) {
             this.padColorData[i * 3]     = this.padColors[i].r;
             this.padColorData[i * 3 + 1] = this.padColors[i].g;
             this.padColorData[i * 3 + 2] = this.padColors[i].b;
@@ -67,13 +67,13 @@ export class CubeGrid {
         });
         material.colorNode = colorNode;
 
-        this.mesh = new THREE.InstancedMesh(geometry, material, 4);
+        this.mesh = new THREE.InstancedMesh(geometry, material, 16);
         this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
         const dummy = new THREE.Object3D();
-        for (let i = 0; i < 4; i++) {
-            const ix = i % 2;
-            const iz = Math.floor(i / 2);
+        for (let i = 0; i < 16; i++) {
+            const ix = i % 4;
+            const iz = Math.floor(i / 4);
             const cx = ix * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
             const cz = iz * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
 
@@ -88,7 +88,7 @@ export class CubeGrid {
     }
 
     trigger(index, velocity, hue) {
-        if (index >= 0 && index < 4) {
+        if (index >= 0 && index < 16) {
             this.pads[index].restHeight = 0.2 * this.impulseDirection;
             this.pads[index].velocity = velocity * this.impulseForce * this.impulseDirection;
             this.pads[index].isActive = 1.0;
@@ -108,7 +108,7 @@ export class CubeGrid {
         let needsMatrixUpdate = false;
         let needsBrightnessUpdate = false;
 
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 16; i++) {
             const pad = this.pads[i];
 
             pad.height += pad.velocity * delta;
@@ -122,8 +122,8 @@ export class CubeGrid {
             }
 
             if (pad.velocity !== 0 || pad.isActive > 0 || Math.abs(pad.height - pad.restHeight) > 0.001) {
-                const ix = i % 2;
-                const iz = Math.floor(i / 2);
+                const ix = i % 4;
+                const iz = Math.floor(i / 4);
                 const cx = ix * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
                 const cz = iz * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
 
@@ -151,8 +151,8 @@ export class CubeGrid {
 
     setCC(cc, value) {
         if (cc === 24) {
-            for (let i = 0; i < 4; i++) {
-                this.padColors[i].setHSL((i / 4 + value) % 1.0, 1.0, 0.5);
+            for (let i = 0; i < 16; i++) {
+                this.padColors[i].setHSL((i / 16 + value) % 1.0, 1.0, 0.5);
                 this.padColorData[i * 3]     = this.padColors[i].r;
                 this.padColorData[i * 3 + 1] = this.padColors[i].g;
                 this.padColorData[i * 3 + 2] = this.padColors[i].b;
