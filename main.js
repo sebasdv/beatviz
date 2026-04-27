@@ -297,14 +297,14 @@ function setupGUI() {
     // BPM sync state
     const clockState = { bpm: '---', sync: false, division: '1/8' };
     const DIVISIONS = {
-        '1/1':   1,
-        '1/2':   0.5,
-        '1/4':   0.25,
-        '1/4T':  1/6,
-        '1/8':   0.125,
-        '1/8T':  1/12,
-        '1/16':  0.0625,
-        '1/16T': 1/24,
+        '1/1':   4,          // 4 beats
+        '1/2':   2,          // 2 beats
+        '1/4':   1,          // 1 beat (negra)
+        '1/4T':  2/3,        // tresillo de negra = 2/3 beat
+        '1/8':   0.5,        // media negra
+        '1/8T':  1/3,        // tresillo de corchea = 1/3 beat
+        '1/16':  0.25,       // cuarto de negra
+        '1/16T': 1/6,        // tresillo de semicorchea = 1/6 beat
     };
 
     const bpmDisplay = folderDelay.add(clockState, 'bpm').name('BPM').disable();
