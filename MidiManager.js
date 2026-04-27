@@ -63,19 +63,20 @@ export class MidiManager {
 
     _onClockPulse(timeStamp) {
         this._clockTimes.push(timeStamp);
-        // Keep only the last 24 pulses (= 1 beat) for averaging
-        if (this._clockTimes.length > 24) this._clockTimes.shift();
+        // Average over 96 pulses (4 beats) for jitter smoothing
+        if (this._clockTimes.length > 96) this._clockTimes.shift();
         if (this._clockTimes.length < 2) return;
 
-        // Average interval between consecutive pulses, then scale to BPM
         let sum = 0;
         for (let i = 1; i < this._clockTimes.length; i++) {
             sum += this._clockTimes[i] - this._clockTimes[i - 1];
         }
         const avgPulseMs = sum / (this._clockTimes.length - 1);
-        const bpm = 60000 / (avgPulseMs * 24);
+        const rawBpm = 60000 / (avgPulseMs * 24);
+        // Quantize to nearest 0.5 BPM to absorb OS/driver jitter
+        const bpm = Math.round(rawBpm * 2) / 2;
 
-        if (Math.abs(bpm - this._bpm) > 0.1 || this._bpm === null) {
+        if (bpm !== this._bpm) {
             this._bpm = bpm;
             this.emit('clock', { bpm });
         }
