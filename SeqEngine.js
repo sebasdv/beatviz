@@ -23,23 +23,18 @@ function createStep(midiNote = 48) {
     return { active: false, velocity: 100, condition: 'always', midiNote };
 }
 
-function createTrack(midiNote) {
+function createTrack(defaultNote) {
     return {
-        midiNote,
-        steps: Array.from({ length: 16 }, () => createStep(midiNote)),
+        midiNote: defaultNote,
+        steps: Array.from({ length: 16 }, () => createStep(defaultNote)),
     };
 }
 
-function createPattern() {
+function createPattern(instrumentList) {
     return {
         bpm:    120,
         swing:  0,
-        tracks: [
-            createTrack(48),  // T0: Kick 808 (melodic)
-            createTrack(49),  // T1: Snare
-            createTrack(50),  // T2: Closed HH
-            createTrack(51),  // T3: Open HH
-        ],
+        tracks: instrumentList.map(({ defaultNote }) => createTrack(defaultNote)),
     };
 }
 
@@ -49,17 +44,18 @@ const SCHEDULER_INTERVAL_MS = 25;
 const LOOKAHEAD_SEC          = 0.1;
 
 export class SeqEngine {
-    constructor(drumSynth, visualizer) {
-        this._drumSynth  = drumSynth;
-        this._visualizer = visualizer;
+    constructor(drumSynth, visualizer, instrumentList) {
+        this._drumSynth      = drumSynth;
+        this._visualizer     = visualizer;
+        this._instrumentList = instrumentList;
 
-        this.pattern = createPattern();
+        this.pattern = createPattern(instrumentList);
 
         this._isPlaying      = false;
         this._schedulerTimer = null;
         this._globalStep     = 0;
-        this._trackStep      = [0, 0, 0, 0];
-        this._barCount       = [0, 0, 0, 0];
+        this._trackStep      = new Array(instrumentList.length).fill(0);
+        this._barCount       = new Array(instrumentList.length).fill(0);
         this._nextStepTime   = 0;
         this._onStepFire     = null;
 
@@ -71,10 +67,11 @@ export class SeqEngine {
 
     start() {
         if (this._isPlaying) return;
+        const n = this.pattern.tracks.length;
         this._isPlaying    = true;
         this._globalStep   = 0;
-        this._trackStep    = [0, 0, 0, 0];
-        this._barCount     = [0, 0, 0, 0];
+        this._trackStep    = new Array(n).fill(0);
+        this._barCount     = new Array(n).fill(0);
         this._nextStepTime = this._ctx.currentTime + 0.05;
 
         this._schedulerTimer = setInterval(
@@ -85,12 +82,13 @@ export class SeqEngine {
 
     stop() {
         if (!this._isPlaying) return;
+        const n = this.pattern.tracks.length;
         this._isPlaying = false;
         clearInterval(this._schedulerTimer);
         this._schedulerTimer = null;
         this._globalStep = 0;
-        this._trackStep  = [0, 0, 0, 0];
-        this._barCount   = [0, 0, 0, 0];
+        this._trackStep  = new Array(n).fill(0);
+        this._barCount   = new Array(n).fill(0);
     }
 
     get isPlaying() { return this._isPlaying; }
@@ -150,7 +148,15 @@ export class SeqEngine {
 
     loadPattern(pattern) {
         this.stop();
-        this.pattern = JSON.parse(JSON.stringify(pattern));
+        const cloned = JSON.parse(JSON.stringify(pattern));
+        while (cloned.tracks.length < this._instrumentList.length) {
+            const { defaultNote } = this._instrumentList[cloned.tracks.length];
+            cloned.tracks.push(createTrack(defaultNote));
+        }
+        this.pattern = cloned;
+        const n = this.pattern.tracks.length;
+        this._trackStep = new Array(n).fill(0);
+        this._barCount  = new Array(n).fill(0);
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
@@ -161,7 +167,7 @@ export class SeqEngine {
 
     _step(trackIdx, stepIdx) {
         const track = this.pattern.tracks[trackIdx];
-        if (!track || stepIdx < 0 || stepIdx >= 64) return null;
+        if (!track || stepIdx < 0 || stepIdx >= 16) return null;
         return track.steps[stepIdx];
     }
 
@@ -174,8 +180,9 @@ export class SeqEngine {
 
     _scheduleStep(time) {
         const delayMs = Math.max(0, (time - this._ctx.currentTime) * 1000);
+        const n = this.pattern.tracks.length;
 
-        for (let t = 0; t < 4; t++) {
+        for (let t = 0; t < n; t++) {
             const track = this.pattern.tracks[t];
             const si    = this._trackStep[t];
             const step  = track.steps[si];
@@ -205,7 +212,8 @@ export class SeqEngine {
         this._nextStepTime += thisStepDur;
         this._globalStep++;
 
-        for (let t = 0; t < 4; t++) {
+        const n = this.pattern.tracks.length;
+        for (let t = 0; t < n; t++) {
             const next = (this._trackStep[t] + 1) % 16;
             if (next === 0) this._barCount[t]++;
             this._trackStep[t] = next;
@@ -214,18 +222,17 @@ export class SeqEngine {
 
     _fireSoundAt(trackIdx, velocity, midiNote, startTime) {
         const vel = velocity / 127;
+        const { name, defaultNote } = this._instrumentList[trackIdx];
 
-        switch (trackIdx) {
-            case 0: this._drumSynth.kick(vel, midiNote, startTime);       break;
-            case 1: this._drumSynth.snare(vel, startTime);                break;
-            case 2: this._drumSynth.closedHihat(vel, startTime);          break;
-            case 3: this._drumSynth.openHihat(vel, startTime);            break;
+        if (trackIdx === 0) {
+            this._drumSynth.kick(vel, midiNote, startTime);
+        } else {
+            this._drumSynth[name](vel, startTime);
         }
 
-        const delayMs    = Math.max(0, (startTime - this._ctx.currentTime) * 1000);
-        const visualNote = 48 + trackIdx;
+        const delayMs = Math.max(0, (startTime - this._ctx.currentTime) * 1000);
         setTimeout(() => {
-            this._visualizer.triggerNote(visualNote, vel);
+            this._visualizer.triggerNote(defaultNote, vel);
         }, delayMs);
     }
 
