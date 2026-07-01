@@ -44,7 +44,7 @@ export class SeqStorage {
         if (!data || data.version !== VERSION) return null;
         data.bpm   = Math.max(40,  Math.min(240, data.bpm   ?? 120));
         data.swing = Math.max(0,   Math.min(75,  data.swing ?? 0));
-        if (!Array.isArray(data.tracks) || data.tracks.length !== 4) return null;
+        if (!Array.isArray(data.tracks) || data.tracks.length < 1 || data.tracks.length > 16) return null;
         for (const track of data.tracks) {
             if (!Array.isArray(track.steps)) return null;
             for (const step of track.steps) {
