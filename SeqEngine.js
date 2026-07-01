@@ -153,6 +153,7 @@ export class SeqEngine {
             const { defaultNote } = this._instrumentList[cloned.tracks.length];
             cloned.tracks.push(createTrack(defaultNote));
         }
+        cloned.tracks = cloned.tracks.slice(0, this._instrumentList.length);
         this.pattern = cloned;
         const n = this.pattern.tracks.length;
         this._trackStep = new Array(n).fill(0);
