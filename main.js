@@ -2,6 +2,9 @@ import { MidiManager } from './MidiManager.js';
 import { Visualizer } from './Visualizer.js';
 import { CCMapper } from './CCMapper.js';
 import { DrumSynth } from './DrumSynth.js';
+import { GamepadManager } from './GamepadManager.js';
+import { SeqEngine } from './SeqEngine.js';
+import { SeqUI } from './SeqUI.js';
 import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
 
 const startButton = document.getElementById('start-audio');
@@ -11,6 +14,13 @@ let midiManager;
 let visualizer;
 let ccMapper;
 let drumSynth;
+let gamepadManager;
+let seqEngine;
+let seqUI;
+
+let currentInstrumentIdx = 0;
+let cursorIndex = 0;
+let playheadIndex = -1;
 
 // Grid layout (row 0=top, row 3=bottom, col 0=A col 3=D):
 //      A(0)       B(1)       C(2)        D(3)
@@ -37,10 +47,24 @@ const INSTRUMENTS = {
     conga:       { defaultNote: 63, channel: 0 },
 };
 
+// Track order for the sequencer — matches INSTRUMENTS declaration order,
+// so track index N always corresponds to Object.values(INSTRUMENTS)[N].
+const INSTRUMENT_LIST = Object.entries(INSTRUMENTS).map(([name, cfg]) => ({
+    name, defaultNote: cfg.defaultNote,
+}));
+
 async function init() {
     visualizer = new Visualizer('canvas-container');
     ccMapper = new CCMapper();
     drumSynth = new DrumSynth();
+
+    seqEngine = new SeqEngine(drumSynth, visualizer, INSTRUMENT_LIST);
+    seqUI = new SeqUI(seqEngine);
+    seqUI.init();
+
+    gamepadManager = new GamepadManager();
+    visualizer.setGamepadManager(gamepadManager);
+    setupGamepad();
 
     midiManager = new MidiManager();
     const midiAccess = await midiManager.init();
@@ -75,6 +99,88 @@ async function init() {
     midiManager.on('cc', (data) => {
         ccMapper.handleCC(data.cc, data.value);
     });
+}
+
+function moveCursor(direction) {
+    let x = cursorIndex % 4;
+    let z = Math.floor(cursorIndex / 4);
+    if (direction === 'up')    z = (z + 3) % 4;
+    if (direction === 'down')  z = (z + 1) % 4;
+    if (direction === 'left')  x = (x + 3) % 4;
+    if (direction === 'right') x = (x + 1) % 4;
+    cursorIndex = z * 4 + x;
+}
+
+function pushEditStateToGrid() {
+    const track = seqEngine.pattern.tracks[currentInstrumentIdx];
+    visualizer.setEditState({
+        instrumentIdx: currentInstrumentIdx,
+        cursorIndex,
+        steps: track.steps,
+        playheadIndex,
+    });
+}
+
+function setupGamepad() {
+    gamepadManager.on('connected', () => {
+        visualizer.setEditMode(true);
+        pushEditStateToGrid();
+    });
+
+    gamepadManager.on('disconnected', () => {
+        visualizer.setEditMode(false);
+    });
+
+    gamepadManager.on('dpad', ({ direction }) => {
+        moveCursor(direction);
+        pushEditStateToGrid();
+    });
+
+    gamepadManager.on('button', ({ name }) => {
+        if (name === 'B') {
+            seqEngine.toggleStep(currentInstrumentIdx, cursorIndex);
+            pushEditStateToGrid();
+        } else if (name === 'Y') {
+            currentInstrumentIdx = (currentInstrumentIdx + 1) % INSTRUMENT_LIST.length;
+            playheadIndex = -1;
+            pushEditStateToGrid();
+        } else if (name === 'X') {
+            currentInstrumentIdx = (currentInstrumentIdx - 1 + INSTRUMENT_LIST.length) % INSTRUMENT_LIST.length;
+            playheadIndex = -1;
+            pushEditStateToGrid();
+        } else if (name === 'A') {
+            if (seqEngine.isPlaying) {
+                seqEngine.stop();
+                playheadIndex = -1;
+            } else {
+                seqEngine.start();
+            }
+            pushEditStateToGrid();
+        }
+    });
+
+    seqEngine.onStepFire((trackIdx, stepIdx) => {
+        if (trackIdx === currentInstrumentIdx) {
+            playheadIndex = stepIdx;
+            pushEditStateToGrid();
+        }
+    });
+}
+
+function updateGamepadDebugOverlay() {
+    const el = document.getElementById('gamepad-debug');
+    if (!el || !gamepadManager) return;
+    const state = gamepadManager.getDebugState();
+    if (!state.connected) {
+        el.textContent = 'Gamepad: not connected';
+        return;
+    }
+    const pressedNames = [];
+    const NAMES = { 0: 'A', 1: 'B', 2: 'X', 3: 'Y', 12: 'UP', 13: 'DOWN', 14: 'LEFT', 15: 'RIGHT' };
+    for (const [idx, label] of Object.entries(NAMES)) {
+        if (state.buttons[idx]) pressedNames.push(label);
+    }
+    el.textContent = `Gamepad: idx ${state.index} (${state.mapping})\nPressed: ${pressedNames.join(', ') || '-'}`;
 }
 
 function addMappable(folder, params, key, min, max, label, handler) {
@@ -501,3 +607,5 @@ document.addEventListener('fullscreenchange', () => {
         fullscreenBtn.textContent = '⛶';
     }
 });
+
+setInterval(updateGamepadDebugOverlay, 100);
