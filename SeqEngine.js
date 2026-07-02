@@ -226,7 +226,7 @@ export class SeqEngine {
         const { name, defaultNote } = this._instrumentList[trackIdx];
 
         if (trackIdx === 0) {
-            this._drumSynth.kick(vel, midiNote, startTime);
+            this._drumSynth.kick(vel, midiNote !== null ? midiNote - 12 : midiNote, startTime);
         } else {
             this._drumSynth[name](vel, startTime);
         }
