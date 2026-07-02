@@ -34,6 +34,12 @@ export class CubeGrid {
             new THREE.Color().setHSL(i / 16, 1.0, 0.5)
         );
 
+        this.editMode = false;
+        this._editState = { instrumentIdx: 0, cursorIndex: 0, steps: null, playheadIndex: -1 };
+        this._flashBrightness = 0;
+        this._flashHue = 0;
+        this._flashDecaySpeed = 6.0;
+
         this.init();
     }
 
@@ -90,6 +96,11 @@ export class CubeGrid {
     }
 
     trigger(index, velocity, hue) {
+        if (this.editMode) {
+            this._flashHue = hue;
+            this._flashBrightness = Math.max(this._flashBrightness, velocity);
+            return;
+        }
         if (index >= 0 && index < 16) {
             this.pads[index].restHeight = 0.2 * this.impulseDirection;
             this.pads[index].velocity = velocity * this.impulseForce * this.impulseDirection;
@@ -132,15 +143,29 @@ export class CubeGrid {
                 needsMatrixUpdate = true;
             }
 
-            if (pad.isActive > 0) {
-                pad.isActive -= delta * this.decaySpeed;
-                if (pad.isActive < 0) pad.isActive = 0;
-                this.brightnessData[i] = pad.isActive;
-                needsBrightnessUpdate = true;
-            } else if (this.brightnessData[i] !== 0) {
-                this.brightnessData[i] = 0;
-                needsBrightnessUpdate = true;
+            if (!this.editMode) {
+                if (pad.isActive > 0) {
+                    pad.isActive -= delta * this.decaySpeed;
+                    if (pad.isActive < 0) pad.isActive = 0;
+                    this.brightnessData[i] = pad.isActive;
+                    needsBrightnessUpdate = true;
+                } else if (this.brightnessData[i] !== 0) {
+                    this.brightnessData[i] = 0;
+                    needsBrightnessUpdate = true;
+                }
             }
+        }
+
+        if (this.editMode && this._flashBrightness > 0) {
+            this._flashBrightness -= delta * this._flashDecaySpeed;
+            if (this._flashBrightness < 0) this._flashBrightness = 0;
+            for (let i = 0; i < 16; i++) {
+                this.padColors[i].setHSL(this._flashHue, 1.0, 0.5);
+                this._applyPadColor(i);
+                this.brightnessData[i] = this._flashBrightness;
+            }
+            needsBrightnessUpdate = true;
+            if (this._flashBrightness === 0) this._renderEditState();
         }
 
         if (needsMatrixUpdate) this.mesh.instanceMatrix.needsUpdate = true;
@@ -168,6 +193,53 @@ export class CubeGrid {
             this.volLevels[index] = vol;
             this._applyPadColor(index);
         }
+    }
+
+    setEditMode(active) {
+        this.editMode = active;
+        this._flashBrightness = 0;
+        if (active) {
+            this._renderEditState();
+        } else {
+            this._restoreNormalColors();
+        }
+    }
+
+    setEditState({ instrumentIdx, cursorIndex, steps, playheadIndex }) {
+        this._editState = { instrumentIdx, cursorIndex, steps, playheadIndex };
+        if (this.editMode && this._flashBrightness === 0) this._renderEditState();
+    }
+
+    _renderEditState() {
+        const { cursorIndex, steps, playheadIndex } = this._editState;
+        for (let i = 0; i < 16; i++) {
+            let hue = 0, sat = 1.0, light = 0.18, brightness = 0.15; // empty step: dim gray-ish
+            const isActive   = steps ? steps[i].active : false;
+            const isPlayhead = i === playheadIndex;
+            const isCursor   = i === cursorIndex;
+
+            if (isActive)   { hue = 0.08; brightness = 0.35; }
+            if (isPlayhead) { hue = 0.15; brightness = 1.0; }
+            if (isCursor) {
+                sat   = Math.min(sat, 0.3);
+                light = 0.9;
+                brightness = Math.max(brightness, 0.85);
+            }
+
+            this.padColors[i].setHSL(hue, sat, light);
+            this._applyPadColor(i);
+            this.brightnessData[i] = brightness;
+        }
+        this.instanceBrightness.needsUpdate = true;
+    }
+
+    _restoreNormalColors() {
+        for (let i = 0; i < 16; i++) {
+            this.padColors[i].setHSL(i / 16, 1.0, 0.5);
+            this._applyPadColor(i);
+            this.brightnessData[i] = this.pads[i].isActive;
+        }
+        this.instanceBrightness.needsUpdate = true;
     }
 
     _applyPadColor(index) {
