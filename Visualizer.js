@@ -15,6 +15,7 @@ export class Visualizer {
         this.grid = null;
         this.gridGroup = null;
         this.postProcessing = null;
+        this.gamepadManager = null;
         this.clock = new THREE.Clock();
         this.bloomStrength = 1.5;
 
@@ -76,6 +77,10 @@ export class Visualizer {
 
         this.controls.update();
 
+        if (this.gamepadManager) {
+            this.gamepadManager.poll();
+        }
+
         if (this.grid) {
             this.grid.update(delta);
         }
@@ -125,5 +130,17 @@ export class Visualizer {
         if (this.grid) {
             this.grid.setPhysics(params);
         }
+    }
+
+    setGamepadManager(gamepadManager) {
+        this.gamepadManager = gamepadManager;
+    }
+
+    setEditMode(active) {
+        if (this.grid) this.grid.setEditMode(active);
+    }
+
+    setEditState(state) {
+        if (this.grid) this.grid.setEditState(state);
     }
 }
