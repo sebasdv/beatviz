@@ -161,7 +161,7 @@ export class CubeGrid {
             if (this._flashBrightness < 0) this._flashBrightness = 0;
             for (let i = 0; i < 16; i++) {
                 this.padColors[i].setHSL(this._flashHue, 1.0, 0.5);
-                this._applyPadColor(i);
+                this._applyPadColor(i, true);
                 this.brightnessData[i] = this._flashBrightness;
             }
             needsBrightnessUpdate = true;
@@ -227,7 +227,7 @@ export class CubeGrid {
             }
 
             this.padColors[i].setHSL(hue, sat, light);
-            this._applyPadColor(i);
+            this._applyPadColor(i, true);
             this.brightnessData[i] = brightness;
         }
         this.instanceBrightness.needsUpdate = true;
@@ -242,8 +242,8 @@ export class CubeGrid {
         this.instanceBrightness.needsUpdate = true;
     }
 
-    _applyPadColor(index) {
-        const vol = this.volLevels[index];
+    _applyPadColor(index, skipVol = false) {
+        const vol = skipVol ? 1.0 : this.volLevels[index];
         const c = this.padColors[index];
         this.padColorData[index * 3]     = c.r * vol;
         this.padColorData[index * 3 + 1] = c.g * vol;
