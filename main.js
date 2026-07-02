@@ -3,6 +3,7 @@ import { Visualizer } from './Visualizer.js';
 import { CCMapper } from './CCMapper.js';
 import { DrumSynth } from './DrumSynth.js';
 import { GamepadManager } from './GamepadManager.js';
+import { KeyboardGamepad } from './KeyboardGamepad.js';
 import { SeqEngine } from './SeqEngine.js';
 import { SeqUI } from './SeqUI.js';
 import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
@@ -15,6 +16,7 @@ let visualizer;
 let ccMapper;
 let drumSynth;
 let gamepadManager;
+let keyboardGamepad;
 let seqEngine;
 let seqUI;
 
@@ -64,6 +66,7 @@ async function init() {
 
     gamepadManager = new GamepadManager();
     visualizer.setGamepadManager(gamepadManager);
+    keyboardGamepad = new KeyboardGamepad();
     setupGamepad();
 
     midiManager = new MidiManager();
@@ -121,22 +124,22 @@ function pushEditStateToGrid() {
     });
 }
 
-function setupGamepad() {
-    gamepadManager.on('connected', () => {
+function wireInputSource(source) {
+    source.on('connected', () => {
         visualizer.setEditMode(true);
         pushEditStateToGrid();
     });
 
-    gamepadManager.on('disconnected', () => {
+    source.on('disconnected', () => {
         visualizer.setEditMode(false);
     });
 
-    gamepadManager.on('dpad', ({ direction }) => {
+    source.on('dpad', ({ direction }) => {
         moveCursor(direction);
         pushEditStateToGrid();
     });
 
-    gamepadManager.on('button', ({ name }) => {
+    source.on('button', ({ name }) => {
         if (name === 'B') {
             seqEngine.toggleStep(currentInstrumentIdx, cursorIndex);
             pushEditStateToGrid();
@@ -158,6 +161,11 @@ function setupGamepad() {
             pushEditStateToGrid();
         }
     });
+}
+
+function setupGamepad() {
+    wireInputSource(gamepadManager);
+    wireInputSource(keyboardGamepad);
 
     seqEngine.onStepFire((trackIdx, stepIdx) => {
         if (trackIdx === currentInstrumentIdx) {
@@ -548,10 +556,12 @@ function setupGUI() {
     for (const folder of gui.folders) folder.close();
 }
 
-// Keyboard → MIDI note mapping (4x4 grid, notes 48-63)
+// Keyboard → MIDI note mapping. W/A/S/D and Y/U/I/O are reserved for the
+// keyboard-as-gamepad emulation (KeyboardGamepad.js), so their instruments
+// (snare, tomMid, rimshot, shaker, clap, clave, crash) are not keyboard-triggerable.
 const KEY_TO_NOTE = {
-    'q': 48, 'w': 49, 'e': 50, 'r': 51, 't': 52, 'y': 53, 'u': 54, 'i': 55,
-    'a': 56, 's': 57, 'd': 58, 'f': 59, 'g': 60, 'h': 61, 'j': 62, 'k': 63,
+    'q': 48, 'e': 50, 'r': 51, 't': 52,
+    'f': 59, 'g': 60, 'h': 61, 'j': 62, 'k': 63,
 };
 
 function setupKeyboard() {
