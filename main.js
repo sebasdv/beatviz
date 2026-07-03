@@ -122,16 +122,27 @@ function pushEditStateToGrid() {
         steps: track.steps,
         playheadIndex,
     });
+    updateInstrumentIndicator();
+}
+
+function updateInstrumentIndicator() {
+    const el = document.getElementById('instrument-indicator');
+    if (!el) return;
+    const { name } = INSTRUMENT_LIST[currentInstrumentIdx];
+    const label = name.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+    el.textContent = `${currentInstrumentIdx + 1} / ${INSTRUMENT_LIST.length} · ${label}`;
 }
 
 function wireInputSource(source) {
     source.on('connected', () => {
         visualizer.setEditMode(true);
+        document.getElementById('instrument-indicator')?.classList.remove('hidden');
         pushEditStateToGrid();
     });
 
     source.on('disconnected', () => {
         visualizer.setEditMode(false);
+        document.getElementById('instrument-indicator')?.classList.add('hidden');
     });
 
     source.on('dpad', ({ direction }) => {
