@@ -37,9 +37,15 @@ const INSTRUMENTS = {
     conga:       { defaultNote: 63, channel: 0 },
 };
 
+// The 4 instruments kept active in "4 Instruments" grid mode — the single
+// source of truth for both which instruments react to input
+// (activeInstrumentNames below) and which instruments' GUI controls get
+// hidden (hideableFolders/hideableMidiControllers in setupGUI).
+const CORE_INSTRUMENTS = ['kick', 'snare', 'closedHihat', 'openHihat'];
+
 // Which instruments currently react to MIDI/keyboard input — narrowed to
-// Kick/Snare/Closed HH/Open HH while Grid Mode is "4 Instruments" (see
-// applyGridMode in setupGUI). Defaults to all 16.
+// CORE_INSTRUMENTS while Grid Mode is "4 Instruments" (see applyGridMode
+// in setupGUI). Defaults to all 16.
 let activeInstrumentNames = new Set(Object.keys(INSTRUMENTS));
 
 async function init() {
@@ -454,25 +460,28 @@ function setupGUI() {
     }};
     gui.add(clearParams, 'clearAll').name('Clear All CC');
 
-    const hideableFolders = [
-        folderTomHigh, folderClap, folderClave, folderCrash,
-        folderTomMid, folderRimshot, folderShaker, folderRide,
-        folderTomLow, folderCowbell, folderTambourine, folderConga,
-    ];
-    const hideableMidiControllers = [
-        tomHighChCtrl, tomHighNoteCtrl, tomMidChCtrl, tomMidNoteCtrl,
-        tomLowChCtrl, tomLowNoteCtrl, rimshotChCtrl, rimshotNoteCtrl,
-        clapChCtrl, clapNoteCtrl, cowbellChCtrl, cowbellNoteCtrl,
-        claveChCtrl, claveNoteCtrl, shakerChCtrl, shakerNoteCtrl,
-        tambourineChCtrl, tambourineNoteCtrl, crashChCtrl, crashNoteCtrl,
-        rideChCtrl, rideNoteCtrl, congaChCtrl, congaNoteCtrl,
-    ];
+    const folderByInstrument = {
+        tomHigh: folderTomHigh, clap: folderClap, clave: folderClave, crash: folderCrash,
+        tomMid: folderTomMid, rimshot: folderRimshot, shaker: folderShaker, ride: folderRide,
+        tomLow: folderTomLow, cowbell: folderCowbell, tambourine: folderTambourine, conga: folderConga,
+    };
+    const midiControllersByInstrument = {
+        tomHigh: [tomHighChCtrl, tomHighNoteCtrl], tomMid: [tomMidChCtrl, tomMidNoteCtrl],
+        tomLow: [tomLowChCtrl, tomLowNoteCtrl], rimshot: [rimshotChCtrl, rimshotNoteCtrl],
+        clap: [clapChCtrl, clapNoteCtrl], cowbell: [cowbellChCtrl, cowbellNoteCtrl],
+        clave: [claveChCtrl, claveNoteCtrl], shaker: [shakerChCtrl, shakerNoteCtrl],
+        tambourine: [tambourineChCtrl, tambourineNoteCtrl], crash: [crashChCtrl, crashNoteCtrl],
+        ride: [rideChCtrl, rideNoteCtrl], conga: [congaChCtrl, congaNoteCtrl],
+    };
+    const hiddenInstrumentNames = Object.keys(INSTRUMENTS).filter(name => !CORE_INSTRUMENTS.includes(name));
+    const hideableFolders = hiddenInstrumentNames.map(name => folderByInstrument[name]);
+    const hideableMidiControllers = hiddenInstrumentNames.flatMap(name => midiControllersByInstrument[name]);
 
     applyGridMode = (mode) => {
         const is4 = mode === '4 Instruments';
         visualizer.setGridMode(is4 ? 4 : 16);
         activeInstrumentNames = is4
-            ? new Set(['kick', 'snare', 'closedHihat', 'openHihat'])
+            ? new Set(CORE_INSTRUMENTS)
             : new Set(Object.keys(INSTRUMENTS));
         for (const folder of hideableFolders) is4 ? folder.hide() : folder.show();
         for (const ctrl of hideableMidiControllers) is4 ? ctrl.hide() : ctrl.show();
