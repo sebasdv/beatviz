@@ -37,6 +37,11 @@ const INSTRUMENTS = {
     conga:       { defaultNote: 63, channel: 0 },
 };
 
+// Which instruments currently react to MIDI/keyboard input — narrowed to
+// Kick/Snare/Closed HH/Open HH while Grid Mode is "4 Instruments" (see
+// applyGridMode in setupGUI). Defaults to all 16.
+let activeInstrumentNames = new Set(Object.keys(INSTRUMENTS));
+
 async function init() {
     visualizer = new Visualizer('canvas-container');
     ccMapper = new CCMapper();
@@ -58,6 +63,7 @@ async function init() {
     midiManager.on('noteOn', ({ note, velocity, channel }) => {
         const k = INSTRUMENTS.kick;
         if (channel === k.channel && (k.mono || note === k.defaultNote)) {
+            if (!activeInstrumentNames.has('kick')) return;
             drumSynth.kick(velocity, k.mono ? note : null);
             visualizer.triggerNote(k.defaultNote, velocity);
             return;
@@ -65,6 +71,7 @@ async function init() {
         for (const [name, cfg] of Object.entries(INSTRUMENTS)) {
             if (name === 'kick') continue;
             if (channel === cfg.channel && note === cfg.defaultNote) {
+                if (!activeInstrumentNames.has(name)) return;
                 drumSynth[name](velocity);
                 visualizer.triggerNote(cfg.defaultNote, velocity);
                 return;
@@ -464,6 +471,9 @@ function setupGUI() {
     applyGridMode = (mode) => {
         const is4 = mode === '4 Instruments';
         visualizer.setGridMode(is4 ? 4 : 16);
+        activeInstrumentNames = is4
+            ? new Set(['kick', 'snare', 'closedHihat', 'openHihat'])
+            : new Set(Object.keys(INSTRUMENTS));
         for (const folder of hideableFolders) is4 ? folder.hide() : folder.show();
         for (const ctrl of hideableMidiControllers) is4 ? ctrl.hide() : ctrl.show();
     };
@@ -488,6 +498,7 @@ function setupKeyboard() {
         const note = KEY_TO_NOTE[key];
         const k = INSTRUMENTS.kick;
         if (note === k.defaultNote) {
+            if (!activeInstrumentNames.has('kick')) return;
             drumSynth.kick(1.0, null);
             visualizer.triggerNote(note, 1.0);
             return;
@@ -495,6 +506,7 @@ function setupKeyboard() {
         for (const [name, cfg] of Object.entries(INSTRUMENTS)) {
             if (name === 'kick') continue;
             if (cfg.defaultNote === note) {
+                if (!activeInstrumentNames.has(name)) return;
                 drumSynth[name](1.0);
                 visualizer.triggerNote(note, 1.0);
                 return;
