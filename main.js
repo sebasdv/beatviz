@@ -113,6 +113,14 @@ function setupGUI() {
     gui.domElement.style.maxHeight = '90vh';
     gui.domElement.style.overflowY = 'auto';
 
+    // Reassigned further down, once the folders/controllers it needs exist.
+    // Safe because this only ever runs in response to a later user interaction.
+    let applyGridMode = () => {};
+    const gridModeParams = { mode: '16 Instruments' };
+    gui.add(gridModeParams, 'mode', ['16 Instruments', '4 Instruments'])
+        .name('Grid Mode')
+        .onChange(mode => applyGridMode(mode));
+
     const visualParams = {
         hueOffset:     0.0,
         baseBright:    0.0,
@@ -406,30 +414,30 @@ function setupGUI() {
     folderMidi.add(midiChParams, 'closedNote',      0,127,1).name('Closed HH Note').onChange(v=> { INSTRUMENTS.closedHihat.defaultNote = v; });
     folderMidi.add(midiChParams, 'openCh',          1,16,1).name('Open HH Ch').onChange(v     => { INSTRUMENTS.openHihat.channel   = v-1; });
     folderMidi.add(midiChParams, 'openNote',        0,127,1).name('Open HH Note').onChange(v  => { INSTRUMENTS.openHihat.defaultNote = v; });
-    folderMidi.add(midiChParams, 'tomHighCh',       1,16,1).name('TomHigh Ch').onChange(v     => { INSTRUMENTS.tomHigh.channel     = v-1; });
-    folderMidi.add(midiChParams, 'tomHighNote',     0,127,1).name('TomHigh Note').onChange(v  => { INSTRUMENTS.tomHigh.defaultNote = v; });
-    folderMidi.add(midiChParams, 'tomMidCh',        1,16,1).name('TomMid Ch').onChange(v      => { INSTRUMENTS.tomMid.channel      = v-1; });
-    folderMidi.add(midiChParams, 'tomMidNote',      0,127,1).name('TomMid Note').onChange(v   => { INSTRUMENTS.tomMid.defaultNote  = v; });
-    folderMidi.add(midiChParams, 'tomLowCh',        1,16,1).name('TomLow Ch').onChange(v      => { INSTRUMENTS.tomLow.channel      = v-1; });
-    folderMidi.add(midiChParams, 'tomLowNote',      0,127,1).name('TomLow Note').onChange(v   => { INSTRUMENTS.tomLow.defaultNote  = v; });
-    folderMidi.add(midiChParams, 'rimshotCh',       1,16,1).name('Rimshot Ch').onChange(v     => { INSTRUMENTS.rimshot.channel     = v-1; });
-    folderMidi.add(midiChParams, 'rimshotNote',     0,127,1).name('Rimshot Note').onChange(v  => { INSTRUMENTS.rimshot.defaultNote = v; });
-    folderMidi.add(midiChParams, 'clapCh',          1,16,1).name('Clap Ch').onChange(v        => { INSTRUMENTS.clap.channel        = v-1; });
-    folderMidi.add(midiChParams, 'clapNote',        0,127,1).name('Clap Note').onChange(v     => { INSTRUMENTS.clap.defaultNote    = v; });
-    folderMidi.add(midiChParams, 'cowbellCh',       1,16,1).name('Cowbell Ch').onChange(v     => { INSTRUMENTS.cowbell.channel     = v-1; });
-    folderMidi.add(midiChParams, 'cowbellNote',     0,127,1).name('Cowbell Note').onChange(v  => { INSTRUMENTS.cowbell.defaultNote = v; });
-    folderMidi.add(midiChParams, 'claveCh',         1,16,1).name('Clave Ch').onChange(v       => { INSTRUMENTS.clave.channel       = v-1; });
-    folderMidi.add(midiChParams, 'claveNote',       0,127,1).name('Clave Note').onChange(v    => { INSTRUMENTS.clave.defaultNote   = v; });
-    folderMidi.add(midiChParams, 'shakerCh',        1,16,1).name('Shaker Ch').onChange(v      => { INSTRUMENTS.shaker.channel      = v-1; });
-    folderMidi.add(midiChParams, 'shakerNote',      0,127,1).name('Shaker Note').onChange(v   => { INSTRUMENTS.shaker.defaultNote  = v; });
-    folderMidi.add(midiChParams, 'tambourineCh',    1,16,1).name('Tambourine Ch').onChange(v  => { INSTRUMENTS.tambourine.channel  = v-1; });
-    folderMidi.add(midiChParams, 'tambourineNote',  0,127,1).name('Tambourine Note').onChange(v=>{ INSTRUMENTS.tambourine.defaultNote = v; });
-    folderMidi.add(midiChParams, 'crashCh',         1,16,1).name('Crash Ch').onChange(v       => { INSTRUMENTS.crash.channel       = v-1; });
-    folderMidi.add(midiChParams, 'crashNote',       0,127,1).name('Crash Note').onChange(v    => { INSTRUMENTS.crash.defaultNote   = v; });
-    folderMidi.add(midiChParams, 'rideCh',          1,16,1).name('Ride Ch').onChange(v        => { INSTRUMENTS.ride.channel        = v-1; });
-    folderMidi.add(midiChParams, 'rideNote',        0,127,1).name('Ride Note').onChange(v     => { INSTRUMENTS.ride.defaultNote    = v; });
-    folderMidi.add(midiChParams, 'congaCh',         1,16,1).name('Conga Ch').onChange(v       => { INSTRUMENTS.conga.channel       = v-1; });
-    folderMidi.add(midiChParams, 'congaNote',       0,127,1).name('Conga Note').onChange(v    => { INSTRUMENTS.conga.defaultNote   = v; });
+    const tomHighChCtrl     = folderMidi.add(midiChParams, 'tomHighCh',       1,16,1).name('TomHigh Ch').onChange(v     => { INSTRUMENTS.tomHigh.channel     = v-1; });
+    const tomHighNoteCtrl   = folderMidi.add(midiChParams, 'tomHighNote',     0,127,1).name('TomHigh Note').onChange(v  => { INSTRUMENTS.tomHigh.defaultNote = v; });
+    const tomMidChCtrl      = folderMidi.add(midiChParams, 'tomMidCh',        1,16,1).name('TomMid Ch').onChange(v      => { INSTRUMENTS.tomMid.channel      = v-1; });
+    const tomMidNoteCtrl    = folderMidi.add(midiChParams, 'tomMidNote',      0,127,1).name('TomMid Note').onChange(v   => { INSTRUMENTS.tomMid.defaultNote  = v; });
+    const tomLowChCtrl      = folderMidi.add(midiChParams, 'tomLowCh',        1,16,1).name('TomLow Ch').onChange(v      => { INSTRUMENTS.tomLow.channel      = v-1; });
+    const tomLowNoteCtrl    = folderMidi.add(midiChParams, 'tomLowNote',      0,127,1).name('TomLow Note').onChange(v   => { INSTRUMENTS.tomLow.defaultNote  = v; });
+    const rimshotChCtrl     = folderMidi.add(midiChParams, 'rimshotCh',       1,16,1).name('Rimshot Ch').onChange(v     => { INSTRUMENTS.rimshot.channel     = v-1; });
+    const rimshotNoteCtrl   = folderMidi.add(midiChParams, 'rimshotNote',     0,127,1).name('Rimshot Note').onChange(v  => { INSTRUMENTS.rimshot.defaultNote = v; });
+    const clapChCtrl        = folderMidi.add(midiChParams, 'clapCh',          1,16,1).name('Clap Ch').onChange(v        => { INSTRUMENTS.clap.channel        = v-1; });
+    const clapNoteCtrl      = folderMidi.add(midiChParams, 'clapNote',        0,127,1).name('Clap Note').onChange(v     => { INSTRUMENTS.clap.defaultNote    = v; });
+    const cowbellChCtrl     = folderMidi.add(midiChParams, 'cowbellCh',       1,16,1).name('Cowbell Ch').onChange(v     => { INSTRUMENTS.cowbell.channel     = v-1; });
+    const cowbellNoteCtrl   = folderMidi.add(midiChParams, 'cowbellNote',     0,127,1).name('Cowbell Note').onChange(v  => { INSTRUMENTS.cowbell.defaultNote = v; });
+    const claveChCtrl       = folderMidi.add(midiChParams, 'claveCh',         1,16,1).name('Clave Ch').onChange(v       => { INSTRUMENTS.clave.channel       = v-1; });
+    const claveNoteCtrl     = folderMidi.add(midiChParams, 'claveNote',       0,127,1).name('Clave Note').onChange(v    => { INSTRUMENTS.clave.defaultNote   = v; });
+    const shakerChCtrl      = folderMidi.add(midiChParams, 'shakerCh',        1,16,1).name('Shaker Ch').onChange(v      => { INSTRUMENTS.shaker.channel      = v-1; });
+    const shakerNoteCtrl    = folderMidi.add(midiChParams, 'shakerNote',      0,127,1).name('Shaker Note').onChange(v   => { INSTRUMENTS.shaker.defaultNote  = v; });
+    const tambourineChCtrl  = folderMidi.add(midiChParams, 'tambourineCh',    1,16,1).name('Tambourine Ch').onChange(v  => { INSTRUMENTS.tambourine.channel  = v-1; });
+    const tambourineNoteCtrl= folderMidi.add(midiChParams, 'tambourineNote',  0,127,1).name('Tambourine Note').onChange(v=>{ INSTRUMENTS.tambourine.defaultNote = v; });
+    const crashChCtrl       = folderMidi.add(midiChParams, 'crashCh',         1,16,1).name('Crash Ch').onChange(v       => { INSTRUMENTS.crash.channel       = v-1; });
+    const crashNoteCtrl     = folderMidi.add(midiChParams, 'crashNote',       0,127,1).name('Crash Note').onChange(v    => { INSTRUMENTS.crash.defaultNote   = v; });
+    const rideChCtrl        = folderMidi.add(midiChParams, 'rideCh',          1,16,1).name('Ride Ch').onChange(v        => { INSTRUMENTS.ride.channel        = v-1; });
+    const rideNoteCtrl      = folderMidi.add(midiChParams, 'rideNote',        0,127,1).name('Ride Note').onChange(v     => { INSTRUMENTS.ride.defaultNote    = v; });
+    const congaChCtrl       = folderMidi.add(midiChParams, 'congaCh',         1,16,1).name('Conga Ch').onChange(v       => { INSTRUMENTS.conga.channel       = v-1; });
+    const congaNoteCtrl     = folderMidi.add(midiChParams, 'congaNote',       0,127,1).name('Conga Note').onChange(v    => { INSTRUMENTS.conga.defaultNote   = v; });
 
     const clearParams = { clearAll: () => {
         ccMapper.assignments = {};
@@ -438,6 +446,27 @@ function setupGUI() {
         location.reload();
     }};
     gui.add(clearParams, 'clearAll').name('Clear All CC');
+
+    const hideableFolders = [
+        folderTomHigh, folderClap, folderClave, folderCrash,
+        folderTomMid, folderRimshot, folderShaker, folderRide,
+        folderTomLow, folderCowbell, folderTambourine, folderConga,
+    ];
+    const hideableMidiControllers = [
+        tomHighChCtrl, tomHighNoteCtrl, tomMidChCtrl, tomMidNoteCtrl,
+        tomLowChCtrl, tomLowNoteCtrl, rimshotChCtrl, rimshotNoteCtrl,
+        clapChCtrl, clapNoteCtrl, cowbellChCtrl, cowbellNoteCtrl,
+        claveChCtrl, claveNoteCtrl, shakerChCtrl, shakerNoteCtrl,
+        tambourineChCtrl, tambourineNoteCtrl, crashChCtrl, crashNoteCtrl,
+        rideChCtrl, rideNoteCtrl, congaChCtrl, congaNoteCtrl,
+    ];
+
+    applyGridMode = (mode) => {
+        const is4 = mode === '4 Instruments';
+        visualizer.setGridMode(is4 ? 4 : 16);
+        for (const folder of hideableFolders) is4 ? folder.hide() : folder.show();
+        for (const ctrl of hideableMidiControllers) is4 ? ctrl.hide() : ctrl.show();
+    };
 
     for (const folder of gui.folders) folder.close();
 }
