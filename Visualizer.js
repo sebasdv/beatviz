@@ -14,6 +14,7 @@ export class Visualizer {
         this.controls = null;
         this.grid = null;
         this.gridGroup = null;
+        this.padCount = 16;
         this.postProcessing = null;
         this.gamepadManager = null;
         this.clock = new THREE.Clock();
@@ -53,7 +54,7 @@ export class Visualizer {
 
         this.gridGroup = new THREE.Group();
         this.scene.add(this.gridGroup);
-        this.grid = new CubeGrid(this.gridGroup, this.renderer);
+        this.grid = new CubeGrid(this.gridGroup, this.renderer, this.padCount);
 
         this.postProcessing = new PostProcessing(this.renderer);
         const scenePass = pass(this.scene, this.camera);
@@ -102,8 +103,8 @@ export class Visualizer {
     }
 
     triggerNote(note, velocity) {
-        const cellIndex = note % 16;
-        const hue = (note % 12) / 12;
+        const cellIndex = note % this.padCount;
+        const hue = cellIndex / this.padCount;
         if (this.grid) {
             this.grid.trigger(cellIndex, velocity, hue);
         }
@@ -130,6 +131,17 @@ export class Visualizer {
         if (this.grid) {
             this.grid.setPhysics(params);
         }
+    }
+
+    setGridMode(padCount) {
+        if (padCount === this.padCount) return;
+        this.padCount = padCount;
+        if (this.grid) {
+            this.gridGroup.remove(this.grid.mesh);
+            this.grid.mesh.geometry.dispose();
+            this.grid.mesh.material.dispose();
+        }
+        this.grid = new CubeGrid(this.gridGroup, this.renderer, padCount);
     }
 
     setGamepadManager(gamepadManager) {
