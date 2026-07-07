@@ -134,6 +134,7 @@ export class Visualizer {
     }
 
     setGridMode(padCount) {
+        if (!this.gridGroup) return;
         if (padCount === this.padCount) return;
         this.padCount = padCount;
         if (this.grid) {
