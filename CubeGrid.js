@@ -2,16 +2,17 @@ import * as THREE from 'three';
 import { attribute, mix, color as tslColor, float } from 'three/tsl';
 
 export class CubeGrid {
-    constructor(scene, renderer) {
+    constructor(scene, renderer, padCount = 16) {
         this.scene = scene;
         this.renderer = renderer;
-        this.gridSize = 4;
-        this.cellSize = 0.9;
+        this.padCount = padCount;
+        this.gridSize = Math.sqrt(padCount);
+        this.cellSize = padCount === 16 ? 0.9 : 1.8;
         this.gap = 0.25;
         this.gridOffset = (this.gridSize * this.cellSize + (this.gridSize - 1) * this.gap) / 2;
 
         this.pads = [];
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < this.padCount; i++) {
             this.pads.push({
                 height: 0.2,
                 velocity: 0,
@@ -30,8 +31,8 @@ export class CubeGrid {
         this.uBaseColor = new THREE.Color(0x111111);
         this.uOpacity = 0.9;
 
-        this.padColors = Array.from({ length: 16 }, (_, i) =>
-            new THREE.Color().setHSL(i / 16, 1.0, 0.5)
+        this.padColors = Array.from({ length: this.padCount }, (_, i) =>
+            new THREE.Color().setHSL(i / this.padCount, 1.0, 0.5)
         );
 
         this.editMode = false;
@@ -47,12 +48,12 @@ export class CubeGrid {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         geometry.translate(0, 0.5, 0);
 
-        this.brightnessData = new Float32Array(16).fill(0);
+        this.brightnessData = new Float32Array(this.padCount).fill(0);
         this.instanceBrightness = new THREE.InstancedBufferAttribute(this.brightnessData, 1);
         geometry.setAttribute('aBrightness', this.instanceBrightness);
 
-        this.padColorData = new Float32Array(16 * 3);
-        for (let i = 0; i < 16; i++) {
+        this.padColorData = new Float32Array(this.padCount * 3);
+        for (let i = 0; i < this.padCount; i++) {
             this.padColorData[i * 3]     = this.padColors[i].r;
             this.padColorData[i * 3 + 1] = this.padColors[i].g;
             this.padColorData[i * 3 + 2] = this.padColors[i].b;
@@ -60,7 +61,7 @@ export class CubeGrid {
         this.instancePadColor = new THREE.InstancedBufferAttribute(this.padColorData, 3);
         geometry.setAttribute('aPadColor', this.instancePadColor);
 
-        this.volLevels = new Float32Array(16).fill(1.0);
+        this.volLevels = new Float32Array(this.padCount).fill(1.0);
 
         const aBrightness = attribute('aBrightness', 'float');
         const aPadColor   = attribute('aPadColor',   'vec3');
@@ -75,13 +76,13 @@ export class CubeGrid {
         });
         material.colorNode = colorNode;
 
-        this.mesh = new THREE.InstancedMesh(geometry, material, 16);
+        this.mesh = new THREE.InstancedMesh(geometry, material, this.padCount);
         this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
         const dummy = new THREE.Object3D();
-        for (let i = 0; i < 16; i++) {
-            const ix = i % 4;
-            const iz = Math.floor(i / 4);
+        for (let i = 0; i < this.padCount; i++) {
+            const ix = i % this.gridSize;
+            const iz = Math.floor(i / this.gridSize);
             const cx = ix * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
             const cz = iz * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
 
@@ -101,7 +102,7 @@ export class CubeGrid {
             this._flashBrightness = Math.max(this._flashBrightness, velocity);
             return;
         }
-        if (index >= 0 && index < 16) {
+        if (index >= 0 && index < this.padCount) {
             this.pads[index].restHeight = 0.2 * this.impulseDirection;
             this.pads[index].velocity = velocity * this.impulseForce * this.impulseDirection;
             this.pads[index].isActive = 1.0;
@@ -117,7 +118,7 @@ export class CubeGrid {
         let needsMatrixUpdate = false;
         let needsBrightnessUpdate = false;
 
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < this.padCount; i++) {
             const pad = this.pads[i];
 
             pad.height += pad.velocity * delta;
@@ -131,8 +132,8 @@ export class CubeGrid {
             }
 
             if (pad.velocity !== 0 || pad.isActive > 0 || Math.abs(pad.height - pad.restHeight) > 0.001) {
-                const ix = i % 4;
-                const iz = Math.floor(i / 4);
+                const ix = i % this.gridSize;
+                const iz = Math.floor(i / this.gridSize);
                 const cx = ix * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
                 const cz = iz * (this.cellSize + this.gap) - this.gridOffset + this.cellSize / 2;
 
@@ -159,7 +160,7 @@ export class CubeGrid {
         if (this.editMode && this._flashBrightness > 0) {
             this._flashBrightness -= delta * this._flashDecaySpeed;
             if (this._flashBrightness < 0) this._flashBrightness = 0;
-            for (let i = 0; i < 16; i++) {
+            for (let i = 0; i < this.padCount; i++) {
                 this.padColors[i].setHSL(this._flashHue, 1.0, 0.5);
                 this._applyPadColor(i, true);
                 this.brightnessData[i] = this._flashBrightness;
@@ -174,8 +175,8 @@ export class CubeGrid {
 
     setCC(cc, value) {
         if (cc === 24) {
-            for (let i = 0; i < 16; i++) {
-                this.padColors[i].setHSL((i / 16 + value) % 1.0, 1.0, 0.5);
+            for (let i = 0; i < this.padCount; i++) {
+                this.padColors[i].setHSL((i / this.padCount + value) % 1.0, 1.0, 0.5);
                 this._applyPadColor(i);
             }
         }
@@ -189,7 +190,7 @@ export class CubeGrid {
     }
 
     setCellVol(index, vol) {
-        if (index >= 0 && index < 16) {
+        if (index >= 0 && index < this.padCount) {
             this.volLevels[index] = vol;
             this._applyPadColor(index);
         }
@@ -212,7 +213,7 @@ export class CubeGrid {
 
     _renderEditState() {
         const { cursorIndex, steps, playheadIndex } = this._editState;
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < this.padCount; i++) {
             let hue = 0, sat = 1.0, light = 0.18, brightness = 0.15; // empty step: dim gray-ish
             const isActive   = steps ? steps[i].active : false;
             const isPlayhead = i === playheadIndex;
@@ -234,8 +235,8 @@ export class CubeGrid {
     }
 
     _restoreNormalColors() {
-        for (let i = 0; i < 16; i++) {
-            this.padColors[i].setHSL(i / 16, 1.0, 0.5);
+        for (let i = 0; i < this.padCount; i++) {
+            this.padColors[i].setHSL(i / this.padCount, 1.0, 0.5);
             this._applyPadColor(i);
             this.brightnessData[i] = this.pads[i].isActive;
         }
