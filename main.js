@@ -2,10 +2,6 @@ import { MidiManager } from './MidiManager.js';
 import { Visualizer } from './Visualizer.js';
 import { CCMapper } from './CCMapper.js';
 import { DrumSynth } from './DrumSynth.js';
-import { GamepadManager } from './GamepadManager.js';
-import { KeyboardGamepad } from './KeyboardGamepad.js';
-import { SeqEngine } from './SeqEngine.js';
-import { SeqUI } from './SeqUI.js';
 import GUI from 'https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js';
 
 const startButton = document.getElementById('start-audio');
@@ -15,14 +11,6 @@ let midiManager;
 let visualizer;
 let ccMapper;
 let drumSynth;
-let gamepadManager;
-let keyboardGamepad;
-let seqEngine;
-let seqUI;
-
-let currentInstrumentIdx = 0;
-let cursorIndex = 0;
-let playheadIndex = -1;
 
 // Grid layout (row 0=top, row 3=bottom, col 0=A col 3=D):
 //      A(0)       B(1)       C(2)        D(3)
@@ -49,25 +37,10 @@ const INSTRUMENTS = {
     conga:       { defaultNote: 63, channel: 0 },
 };
 
-// Track order for the sequencer — matches INSTRUMENTS declaration order,
-// so track index N always corresponds to Object.values(INSTRUMENTS)[N].
-const INSTRUMENT_LIST = Object.entries(INSTRUMENTS).map(([name, cfg]) => ({
-    name, defaultNote: cfg.defaultNote,
-}));
-
 async function init() {
     visualizer = new Visualizer('canvas-container');
     ccMapper = new CCMapper();
     drumSynth = new DrumSynth();
-
-    seqEngine = new SeqEngine(drumSynth, visualizer, INSTRUMENT_LIST);
-    seqUI = new SeqUI(seqEngine);
-    seqUI.init();
-
-    gamepadManager = new GamepadManager();
-    visualizer.setGamepadManager(gamepadManager);
-    keyboardGamepad = new KeyboardGamepad();
-    setupGamepad();
 
     midiManager = new MidiManager();
     const midiAccess = await midiManager.init();
@@ -102,104 +75,6 @@ async function init() {
     midiManager.on('cc', (data) => {
         ccMapper.handleCC(data.cc, data.value);
     });
-}
-
-function moveCursor(direction) {
-    let x = cursorIndex % 4;
-    let z = Math.floor(cursorIndex / 4);
-    if (direction === 'up')    z = (z + 3) % 4;
-    if (direction === 'down')  z = (z + 1) % 4;
-    if (direction === 'left')  x = (x + 3) % 4;
-    if (direction === 'right') x = (x + 1) % 4;
-    cursorIndex = z * 4 + x;
-}
-
-function pushEditStateToGrid() {
-    const track = seqEngine.pattern.tracks[currentInstrumentIdx];
-    visualizer.setEditState({
-        instrumentIdx: currentInstrumentIdx,
-        cursorIndex,
-        steps: track.steps,
-        playheadIndex,
-    });
-    updateInstrumentIndicator();
-}
-
-function updateInstrumentIndicator() {
-    const el = document.getElementById('instrument-indicator');
-    if (!el) return;
-    const { name } = INSTRUMENT_LIST[currentInstrumentIdx];
-    const label = name.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
-    el.textContent = `${currentInstrumentIdx + 1} / ${INSTRUMENT_LIST.length} · ${label}`;
-}
-
-function wireInputSource(source) {
-    source.on('connected', () => {
-        visualizer.setEditMode(true);
-        document.getElementById('instrument-indicator')?.classList.remove('hidden');
-        pushEditStateToGrid();
-    });
-
-    source.on('disconnected', () => {
-        visualizer.setEditMode(false);
-        document.getElementById('instrument-indicator')?.classList.add('hidden');
-    });
-
-    source.on('dpad', ({ direction }) => {
-        moveCursor(direction);
-        pushEditStateToGrid();
-    });
-
-    source.on('button', ({ name }) => {
-        if (name === 'B') {
-            seqEngine.toggleStep(currentInstrumentIdx, cursorIndex);
-            pushEditStateToGrid();
-        } else if (name === 'Y') {
-            currentInstrumentIdx = (currentInstrumentIdx + 1) % INSTRUMENT_LIST.length;
-            playheadIndex = -1;
-            pushEditStateToGrid();
-        } else if (name === 'X') {
-            currentInstrumentIdx = (currentInstrumentIdx - 1 + INSTRUMENT_LIST.length) % INSTRUMENT_LIST.length;
-            playheadIndex = -1;
-            pushEditStateToGrid();
-        } else if (name === 'A') {
-            if (seqEngine.isPlaying) {
-                seqEngine.stop();
-                playheadIndex = -1;
-            } else {
-                seqEngine.start();
-            }
-            pushEditStateToGrid();
-        }
-    });
-}
-
-function setupGamepad() {
-    wireInputSource(gamepadManager);
-    wireInputSource(keyboardGamepad);
-
-    seqEngine.onStepFire((trackIdx, stepIdx) => {
-        if (trackIdx === currentInstrumentIdx) {
-            playheadIndex = stepIdx;
-            pushEditStateToGrid();
-        }
-    });
-}
-
-function updateGamepadDebugOverlay() {
-    const el = document.getElementById('gamepad-debug');
-    if (!el || !gamepadManager) return;
-    const state = gamepadManager.getDebugState();
-    if (!state.connected) {
-        el.textContent = 'Gamepad: not connected';
-        return;
-    }
-    const pressedNames = [];
-    const NAMES = { 0: 'A', 1: 'B', 2: 'X', 3: 'Y', 12: 'UP', 13: 'DOWN', 14: 'LEFT', 15: 'RIGHT' };
-    for (const [idx, label] of Object.entries(NAMES)) {
-        if (state.buttons[idx]) pressedNames.push(label);
-    }
-    el.textContent = `Gamepad: idx ${state.index} (${state.mapping})\nPressed: ${pressedNames.join(', ') || '-'}`;
 }
 
 function addMappable(folder, params, key, min, max, label, handler) {
@@ -567,12 +442,10 @@ function setupGUI() {
     for (const folder of gui.folders) folder.close();
 }
 
-// Keyboard → MIDI note mapping. W/A/S/D and Y/U/I/O are reserved for the
-// keyboard-as-gamepad emulation (KeyboardGamepad.js), so their instruments
-// (snare, tomMid, rimshot, shaker, clap, clave, crash) are not keyboard-triggerable.
+// Keyboard → MIDI note mapping (4x4 grid, notes 48-63)
 const KEY_TO_NOTE = {
-    'q': 48, 'e': 50, 'r': 51, 't': 52,
-    'f': 59, 'g': 60, 'h': 61, 'j': 62, 'k': 63,
+    'q': 48, 'w': 49, 'e': 50, 'r': 51, 't': 52, 'y': 53, 'u': 54, 'i': 55,
+    'a': 56, 's': 57, 'd': 58, 'f': 59, 'g': 60, 'h': 61, 'j': 62, 'k': 63,
 };
 
 function setupKeyboard() {
@@ -628,5 +501,3 @@ document.addEventListener('fullscreenchange', () => {
         fullscreenBtn.textContent = '⛶';
     }
 });
-
-setInterval(updateGamepadDebugOverlay, 100);

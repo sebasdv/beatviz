@@ -99,11 +99,6 @@ export class CubeGrid {
         if (this.editMode) {
             this._flashHue = hue;
             this._flashBrightness = Math.max(this._flashBrightness, velocity);
-            if (index >= 0 && index < 16) {
-                this.pads[index].restHeight = 0.2 * this.impulseDirection;
-                this.pads[index].velocity = velocity * this.impulseForce * this.impulseDirection;
-                this.impulseDirection *= -1.0;
-            }
             return;
         }
         if (index >= 0 && index < 16) {

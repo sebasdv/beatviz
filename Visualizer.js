@@ -19,6 +19,10 @@ export class Visualizer {
         this.clock = new THREE.Clock();
         this.bloomStrength = 1.5;
 
+        this.rotVelocity = 0;
+        this.rotDamping = 0.95;
+        this.rotImpulse = 0.8;
+
         this.init();
     }
 
@@ -81,6 +85,12 @@ export class Visualizer {
             this.grid.update(delta);
         }
 
+        if (this.gridGroup && this.rotVelocity !== 0) {
+            this.gridGroup.rotation.y += this.rotVelocity * delta;
+            this.rotVelocity *= this.rotDamping;
+            if (Math.abs(this.rotVelocity) < 0.001) this.rotVelocity = 0;
+        }
+
         this.postProcessing.renderAsync();
     }
 
@@ -93,9 +103,16 @@ export class Visualizer {
 
     triggerNote(note, velocity) {
         const cellIndex = note % 16;
-        const hue = cellIndex / 16;
+        const hue = (note % 12) / 12;
         if (this.grid) {
             this.grid.trigger(cellIndex, velocity, hue);
+        }
+        if (note === 48) {
+            const sign = velocity >= 1.0 ? -1 : 1;
+            this.rotVelocity += sign * velocity * this.rotImpulse;
+        }
+        if (note === 51) {
+            this.rotDamping = 0.80 + Math.random() * 0.19; // 0.80–0.99
         }
     }
 
